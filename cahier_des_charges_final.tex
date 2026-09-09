@@ -1,0 +1,385 @@
+\documentclass[12pt,a4paper,oneside]{report}
+
+% --- Language & encoding
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{setspace}
+\usepackage{helvet}
+
+% --- Layout & Geometry
+\usepackage{geometry}
+\geometry{
+    a4paper,
+    total={160mm,247mm},
+    left=25mm,
+    top=25mm,
+    bottom=25mm,
+    right=25mm
+}
+
+% --- Visuals & Color palette
+\usepackage[table]{xcolor}
+\definecolor{primarycolor}{HTML}{1A365D}   % Deep Navy Blue
+\definecolor{secondarycolor}{HTML}{2B6CB0} % Slate Blue
+\definecolor{accentcolor}{HTML}{319795}    % Teal Accent
+\definecolor{darktext}{HTML}{2D3748}       % Charcoal Dark Text
+\definecolor{lightgray}{HTML}{F7FAFC}      % Warm Light Gray background
+\definecolor{bordergray}{HTML}{E2E8F0}     % Border Gray
+
+% Apply default text color
+\color{darktext}
+
+% --- Typography & Fonts
+\usepackage{lmodern}
+\usepackage{microtype}
+
+% --- Section Formatting
+\usepackage{titlesec}
+\titleformat{\chapter}[block]
+  {\normalfont\Huge\bfseries\sffamily\color{primarycolor}}
+  {\color{accentcolor}\thechapter\hspace{15pt}\vline\hspace{15pt}}{0pt}{}
+\titlespacing*{\chapter}{0pt}{-10pt}{30pt}
+
+\titleformat{\section}
+  {\normalfont\Large\bfseries\sffamily\color{primarycolor}}
+  {\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{15pt}{10pt}
+
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\sffamily\color{secondarycolor}}
+  {\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{12pt}{6pt}
+
+% --- Headers & Footers
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\sffamily\small\color{gray}Cahier des Charges --- Solution Excel vers Word}
+\fancyhead[R]{\sffamily\small\color{gray}ANTIC}
+\fancyfoot[C]{\sffamily\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.0pt}
+
+\setlength{\headheight}{15pt}
+
+\fancypagestyle{plain}{
+  \fancyhf{}
+  \fancyfoot[C]{\sffamily\small\thepage}
+  \renewcommand{\headrulewidth}{0.0pt}
+}
+
+% --- Graphic support & Diagrams
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usetikzlibrary{shapes,arrows,positioning,shadows}
+
+% --- Tables
+\usepackage{booktabs}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+% --- Lists
+\usepackage{enumitem}
+\setlist[itemize]{label=\color{accentcolor}\textbullet, leftmargin=20pt, topsep=4pt, itemsep=4pt}
+\setlist[enumerate]{leftmargin=20pt, topsep=4pt, itemsep=4pt}
+
+% --- Custom Callout Boxes 
+\usepackage[most]{tcolorbox}
+\newtcolorbox{infobox}[1]{
+  colback=lightgray,
+  colframe=accentcolor,
+  fonttitle=\bfseries\sffamily\color{white},
+  coltitle=white,
+  title=#1,
+  arc=4pt,
+  left=10pt,
+  right=10pt,
+  top=8pt,
+  bottom=8pt,
+  boxrule=1.5pt,
+  enhanced,
+  shadow={2pt}{-2pt}{0pt}{black!10}
+}
+\newtcolorbox{warningbox}[1]{
+  colback=lightgray,
+  colframe=orange!80!black,
+  fonttitle=\bfseries\sffamily\color{white},
+  coltitle=white,
+  title=#1,
+  arc=4pt,
+  left=10pt,
+  right=10pt,
+  top=8pt,
+  bottom=8pt,
+  boxrule=1.5pt,
+  enhanced,
+  shadow={2pt}{-2pt}{0pt}{black!10}
+}
+\newtcolorbox{dangerbox}[1]{
+  colback=lightgray,
+  colframe=red!80!black,
+  fonttitle=\bfseries\sffamily\color{white},
+  coltitle=white,
+  title=#1,
+  arc=4pt,
+  left=10pt,
+  right=10pt,
+  top=8pt,
+  bottom=8pt,
+  boxrule=1.5pt,
+  enhanced,
+  shadow={2pt}{-2pt}{0pt}{black!10}
+}
+
+% --- Hyperlinks
+\usepackage[pdftex]{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=secondarycolor,
+    citecolor=accentcolor,
+    urlcolor=accentcolor,
+    pdftitle={Cahier des Charges --- Solution Excel vers Word},
+}
+
+\begin{document}
+
+%==============================================================================
+% PAGE DE GARDE 
+%==============================================================================
+\begin{titlepage}
+
+\begin{tikzpicture}[remember picture,overlay]
+    \draw[line width=1.2pt,primarycolor]
+    (current page.north west)+(2cm,-2.3cm) --
+    (current page.north east)+(-2cm,-2.3cm);
+    \draw[line width=1.2pt,primarycolor]
+    (current page.south west)+(2cm,2cm) --
+    (current page.south east)+(-2cm,2cm);
+\end{tikzpicture}
+
+\centering
+\vspace*{-0.5cm}
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \includegraphics[height=2.2cm,keepaspectratio]{antic.png}
+    \end{minipage}\hfill
+    \begin{minipage}{0.45\textwidth}
+        \centering
+        \includegraphics[height=2.5cm,keepaspectratio]{polytech.png}
+    \end{minipage}
+\end{figure}
+
+\vspace{0.4cm}
+
+% --- Institution ---
+{\Large\bfseries\color{primarycolor}
+AGENCE NATIONALE DES TECHNOLOGIES\\[0.1cm]
+DE L'INFORMATION ET DE LA COMMUNICATION
+}
+
+\vspace{0.15cm}
+{\large\color{darktext} Département de l'Ingénierie Logicielle}
+
+\vfill
+
+% --- Type de doc ---
+{\Huge\bfseries\color{primarycolor}
+CAHIER DES CHARGES
+}
+\vspace{0.2cm}
+{\Large\bfseries\color{secondarycolor} Fonctionnel et Technique}
+
+\vfill
+
+% --- Projet ---
+{\LARGE\bfseries\color{primarycolor}
+Plateforme Web Sécurisée de\\[0.3cm]
+Conversion Périodique (Excel vers Word)
+}
+\vspace{0.3cm}
+{\large\itshape\color{darktext}
+Automatisation et Sécurisation de la Gestion Documentaire
+}
+
+\vfill
+
+% --- Description ---
+\begin{minipage}{0.88\textwidth}
+\centering\small\color{darktext}
+Ce document présente les spécifications fonctionnelles et techniques
+relatives à la conception et au développement d'une plateforme web
+souveraine, destinée à automatiser le processus d'extraction de données 
+depuis des classeurs Excel vers des rapports normalisés au format Word.
+\end{minipage}
+
+\vfill
+
+% --- Infos ---
+\begin{minipage}[t]{0.48\textwidth}
+    \sffamily
+    \textbf{\color{primarycolor}Rédigé par :}\\[0.15cm]
+    \textbf{Équipe de Développement}\\
+    {\small Service Ingénierie Logicielle}
+\end{minipage}
+\hfill
+\begin{minipage}[t]{0.48\textwidth}
+    \sffamily
+    \textbf{\color{primarycolor}À l'attention de :}\\[0.15cm]
+    \textbf{Direction Générale}\\
+    {\small ANTIC}
+\end{minipage}
+
+\vspace{0.5cm}
+
+% --- Bas de page ---
+{\small\sffamily\color{gray}
+ \quad$\bullet$\quad Année 2026 \quad$\bullet$\quad 
+}
+\end{titlepage}
+
+\newpage
+
+%==============================================================================
+% TOC
+%==============================================================================
+{
+  \hypersetup{linkcolor=darktext}
+  \tableofcontents
+}
+\newpage
+
+\pagenumbering{arabic}
+
+%==============================================================================
+\chapter{Présentation et Contexte}
+%==============================================================================
+
+\section{Mission Réglementaire et Enjeux}
+L'Agence Nationale des Technologies de l'Information et de la Communication (ANTIC) constitue l'organe tutélaire de sécurisation et de promotion du cyberespace national. Elle orchestre la régulation technologique pour l'ensemble des démembrements de l'État. De par ses attributions, l'institution compile de très lourds classeurs d'informations (tableaux de bord, relevés d'incidents, données de régulation) consolidés initialement sous forme de fichiers Microsoft Excel. 
+
+Cependant, la restitution de ces bilans vers les tutelles ou les partenaires institutionnels exige un formalisme narratif strict et une mise en page d'État, généralement fixés sous Microsoft Word. Il s'avère donc impératif d'automatiser cette transition logicielle de manière fiable.
+
+\begin{warningbox}{Le Problème Métier}
+Le processus actuel nécessite de nombreuses manipulations "Copier/Coller" fastidieuses des matrices vers le traitement de texte, provoquant une perte de temps substantielle et un risque humain majeur sur des rapports pourtant décisifs. 
+\end{warningbox}
+
+\section{Analyse de l'Existant (Solutions Externes)}
+
+L'automatisation documentaire peut s'opérer de multiples manières. Néanmoins, en qualité d'opérateur régalien, l'ANTIC se heurte aux écueils sécuritaires de solutions triviales.
+
+\begin{dangerbox}{Le Péril du Cloud Public}
+L'emploi de convertisseurs ouverts accessibles librement sur Internet (Convertio, ILovePDF, Zamzar) est catégoriquement proscrit. Le dépôt de tableaux de bords officiels sur des infrastructures cloud tierces enfreint la souveraineté de l'institution et la politique de confidentialité de ses documents.
+\end{dangerbox}
+
+Au sein de l'environnement bureautique interne, les solutions par l'usage exclusif de scripts locaux isolés (tels que Microsoft VBA ou Power Automate Desktop) pèchent par leur opacité. L'agent exécute sa macro sur son poste de travail sans centralisation, rendant impossible tout audit d'exploitation. Un système centralisé se révèle donc inévitable.
+
+
+%==============================================================================
+\chapter{Matrice des Exigences}
+%==============================================================================
+
+Les besoins formulés par l'administration ont été classifiés en exigences de fonctionnement et en contraintes d'infrastructure.
+
+\section{Exigences Fonctionnelles}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{L{2cm} L{10cm} L{2cm}}
+\toprule
+\textbf{Code} & \textbf{Spécification attendue} & \textbf{Niveau} \\
+\midrule
+\textbf{EF-01} & Validation impérative de l'authentification préalable par compte autorisé de l'annuaire interne. & Majeur \\
+\textbf{EF-02} & Traitement strict des formats d'extension \textbf{.xlsx / .xls}, limités à une taille pondérale de 10 Mo. & Majeur \\
+\textbf{EF-03} & Identification de chaque feuille du classeur comme un chapitre distinct dans le résultat Word final. & Standard \\
+\textbf{EF-04} & Conservation des matrices sous forme de tableaux formels (bordures pleines, en-têtes répliquées) sur le rapport édité. & Majeur \\
+\textbf{EF-05} & Livraison d'un lien hautement éphémère (téléchargement unidirectionnel) interdisant toute conservation locale sur le serveur applicatif. & Mineur \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Exigences Non-Fonctionnelles}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{L{2cm} L{10cm} L{2cm}}
+\toprule
+\textbf{Code} & \textbf{Spécification attendue} & \textbf{Type} \\
+\midrule
+\textbf{ENF-01} & \textbf{Auditeabilité : } Génération d'une trace indélébile des opérations (Horodatant l'agent et cryptant le condensat SHA-256 du fichier intra-entrant). & Sécurité \\
+\textbf{ENF-02} & \textbf{Sanitarisation :} Le moteur parsera les données en obstruant toute exécution d'instructions contenues dans d'éventuelles formules ou macros virales malicieusement intégrées. & Sécurité \\
+\textbf{ENF-03} & \textbf{Efficacité :} Contenir le temps de traitement logiciel par le processeur sous le seuil critique des 8 secondes par fichier moyen. & Performance \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%==============================================================================
+\chapter{Analyse Comparative des Technologies}
+%==============================================================================
+
+Pour asseoir un socle souverain, stable et performant, de nombreuses filières techniques ont été confrontées eu égard aux contraintes drastiques de manipulation bureautique. La décision s'établit par dichotomie fonctionnelle.
+
+\section{Plateforme Backend (Moteur de Logique et Conversion)}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{L{3.5cm} L{4.5cm} L{4.5cm} L{2cm}}
+\toprule
+\textbf{Technologie} & \textbf{Avantages Décisifs} & \textbf{Inconvénients Majeurs} & \textbf{Décision} \\
+\midrule
+\textbf{Node.js / Express} & Développement extrêmement rapide. Communauté de paquets colossale. Moteur asynchrone V8 vigoureux. & La manipulation de très lourds fichiers matriciels dans un thread unique peut bloquer le serveur web rudement. Paquets bureaucratiques parfois instables. & \textcolor{red!80!black}{\textbf{Rejeté}} \\
+\midrule
+\textbf{Python / FastAPI} & Paradigme très aisé à manipuler par les Data Scientists. Bibliothèques puissantes pour traiter les CSV. & Bien que performant, python demeure un langage de script pour le serveur, réclamant souvent un serveur dorsal (Gunicorn) moins monolithique. & \textcolor{gray}{\textbf{Exclu}} \\
+\midrule
+\textbf{Java / Spring Boot 3} & Maturité exceptionnelle en entreprise (Sécurité implacable via Spring Security). Existence du protocole logiciel \textbf{Apache POI}, leader incontesté pour disloquer les formats Office natifs. & Formalisme syntaxique lourd exigeant une expertise plus pointue, et une empreinte mémoire vive au déploiement plus substantielle. & \textcolor{green!60!black}{\textbf{RETENU}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{infobox}{Décision pour le Socle Applicatif}
+La conjonction \textbf{Spring Boot} + \textbf{Apache POI} offre la seule assurance absolue d'affronter des fichiers endommagés sans s'écrouler, profitant d'un modèle de concurrence de type \textit{thread-pool} très robuste de la machine virtuelle Java face aux multiples requêtes simultanées de fin de mois.
+\end{infobox}
+
+\section{Plateforme Frontend (Interface de Restitution)}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{L{3.5cm} L{4.5cm} L{4.5cm} L{2cm}}
+\toprule
+\textbf{Technologie} & \textbf{Avantages Décisifs} & \textbf{Inconvénients Majeurs} & \textbf{Décision} \\
+\midrule
+\textbf{HTML Typique} & Absence de Compilation (Déploiement immédiat de pages statiques). Simplissime. & Ingérable dès lors qu'il faut intégrer de stricts intercepteurs cryptographiques (Token JWT) et des interfaces \textit{Drag-n-Drop}. & \textcolor{red!80!black}{\textbf{Rejeté}} \\
+\midrule
+\textbf{Angular} & Le panzer lourd des applications monopartites. Très rigide et ultra structurant pour les grandes firmes. & Abusivement complexe pour un portail comportant originellement 3 écrans primaires de soumission documentaire. & \textcolor{gray}{\textbf{Exclu}} \\
+\midrule
+\textbf{React.js (+ Vite)} & Découpe organique en composants isolés extrêmement fluide. Temps de génération (Vite) de l'ordre de la milliseconde. Appariement aisé avec des bibliothèques de manipulation DOM modernisées. & Laisse la responsabilité du routage à des bibliothèques subsidiaires, requérant l'injection stricte de React-Router. & \textcolor{green!60!black}{\textbf{RETENU}} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%==============================================================================
+\chapter{Spécifications Numériques du Déploiement}
+%==============================================================================
+
+L'aboutissement du choix technique conduit à l'établissement de la morphologie de déploiement (Architecture N-Tiers). 
+
+\section{Organisation Spatiale Interne}
+
+\begin{itemize}
+    \item \textbf{La Façade Navigable :} Construite par le biais de React, cette interface ne converse pas ouvertement avec le moteur central. Elle utilise son utilitaire Axios pour insérer manuellement le paraphe secret \textbf{Bearer Token} issu d'une connexion licite, avant de catapulter le fichier intercepté vers les réseaux dorsaux via le réseau chiffré TLS.
+    \item \textbf{L'Autel du Calcul (Spring Boot) :} S'institue en orchestrateur. Il valide d'abord la signature électronique de toutes transactions entrantes. Il transvase la masse filaire du tableur en RAM, orchestre les itérations sur les dépendances (Feuillages Excel $\rightarrow$ Organigramme Word) au travers d'Apache POI, et livre éternellement un identifiant de téléchargement.
+    \item \textbf{Le Coffre Analytique (PostgreSQL) :} La couche souterraine ne verra jamais la surface d'un fichier Word terminé. Elle reste isolée pour archiver indélébilement le nom de l'agent étatique, l'heure atomique légale d'action et le haché originel. 
+\end{itemize}
+
+\section{Conteneurisation et Clôture}
+L'amarrage de cette mécanique se verra scellée dans des isoloirs Docker garantissant qu'elle demeure invulnérable aux perturbations environnementales du système d'exploitation de base de l'agence (qu'il soit Ubuntu 24.04 ou Red Hat Enterprise). Chaque livraison logicielle subira l'imprimatur des pipelines de validations internes confirmant l'hermétisme sécuritaire tant loué.
+
+\end{document}

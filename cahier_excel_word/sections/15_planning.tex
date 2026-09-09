@@ -1,0 +1,70 @@
+\chapter{Planning et Organisation du Projet}
+
+Le projet s'exécute sur une durée globale de quatre (4) semaines (30 jours calendaires). Le tableau et le diagramme de Gantt ci-dessous détaillent les 7 tâches principales ainsi que l'attribution des rôles :
+
+\vspace{0.3cm}
+
+\begin{table}[H]
+\centering
+\sffamily\small
+\begin{tabular}{L{1.8cm} L{5.8cm} L{3.5cm} C{1.4cm} C{1.4cm} C{1.6cm}}
+\toprule
+\rowcolor{primarycolor!15}
+\textbf{Tâche} & \textbf{Intitulé de la Tâche} & \textbf{Responsable} & \textbf{Début} & \textbf{Fin} & \textbf{Durée} \\
+\midrule
+\textbf{Tâche 1} & Analyse et conception (diagramme UML) & Équipe & Jour 1 & Jour 4 & 4 jours \\
+\rowcolor{lightgray}
+\textbf{Tâche 2} & Modélisation de la BDD (MCD) & Équipe & Jour 3 & Jour 6 & 4 jours \\
+\textbf{Tâche 3} & Architecture du système & Équipe & Jour 5 & Jour 8 & 4 jours \\
+\rowcolor{lightgray}
+\textbf{Tâche 4} & Implémentation backend & NKWAIN REMI KUMA & Jour 9 & Jour 20 & 12 jours \\
+\textbf{Tâche 5} & Implémentation frontend & NANKENG TSAMO PIERRE MARCELLE & Jour 9 & Jour 20 & 12 jours \\
+\rowcolor{lightgray}
+\textbf{Tâche 6} & Conteneurisation Docker \& Compose & Équipe & Jour 21 & Jour 25 & 5 jours \\
+\textbf{Tâche 7} & Documentation (guides technique \& utilisateur) & Équipe & Jour 24 & Jour 30 & 7 jours \\
+\bottomrule
+\end{tabular}
+\caption{Planning détaillé des lots de travaux avec affectation des responsables}
+\end{table}
+
+\vspace{0.4cm}
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{ganttchart}[
+    canvas/.style={draw=bordergray, fill=lightgray!30},
+    hgrid=true,
+    vgrid=true,
+    x unit=0.45cm,
+    y unit title=0.7cm,
+    y unit chart=0.75cm,
+    title/.style={draw=primarycolor, fill=primarycolor!15},
+    title label font=\bfseries\color{primarycolor}\small,
+    title height=1,
+    bar/.style={draw=secondarycolor, fill=secondarycolor!80},
+    bar height=0.6,
+    bar label font=\small\color{primarycolor},
+    group left shift=0,
+    group right shift=0,
+    group height=.2,
+    group peaks tip position=0
+]{1}{30}
+    \gantttitle{Planning de Réalisation - 1 Mois (30 Jours)}{30} \\
+    \gantttitle{Semaine 1}{7}
+    \gantttitle{Semaine 2}{7}
+    \gantttitle{Semaine 3}{7}
+    \gantttitle{Semaine 4}{9} \\
+    \gantttitlelist{1,...,30}{1} \\
+
+    \ganttbar{Tâche 1 : Analyse et conception (UML)}{1}{4} \\
+    \ganttbar{Tâche 2 : Modélisation BDD (MCD)}{3}{6} \\
+    \ganttbar{Tâche 3 : Architecture du système}{5}{8} \\
+    \ganttbar{Tâche 4 : Implémentation backend (NKWAIN REMI KUMA)}{9}{20} \\
+    \ganttbar{Tâche 5 : Implémentation frontend (NANKENG TSAMO PIERRE MARCELLE)}{9}{20} \\
+    \ganttbar{Tâche 6 : Conteneurisation Docker}{21}{25} \\
+    \ganttbar{Tâche 7 : Documentation}{24}{30}
+\end{ganttchart}
+}
+\caption{Diagramme de Gantt avec attribution nominative des rôles}
+\end{figure}

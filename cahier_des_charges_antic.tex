@@ -1,0 +1,193 @@
+\documentclass[12pt,a4paper,twoside]{report}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[french]{babel}
+\usepackage{geometry}
+\usepackage{helvet}
+\usepackage{titlesec}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{setspace}
+\usepackage{caption}
+\usepackage{booktabs}
+\usepackage{array}
+
+\geometry{a4paper, margin=2.5cm, headheight=15pt}
+\renewcommand{\familydefault}{\sfdefault}
+\onehalfspacing
+
+% Colors
+\definecolor{anticblue}{RGB}{0, 61, 121}
+\definecolor{anticred}{RGB}{204, 0, 0}
+\definecolor{darkgray}{RGB}{80, 80, 80}
+
+% Title formats
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\color{anticblue}}
+  {\Large\chaptertitlename~\thechapter}{10pt}{\Huge}
+\titlespacing*{\chapter}{0pt}{0pt}{30pt}
+
+\titleformat{\section}{\color{anticblue}\Large\bfseries}{\thesection}{1em}{}
+\titleformat{\subsection}{\color{anticred}\large\bfseries}{\thesubsection}{1em}{}
+\titleformat{\subsubsection}{\color{darkgray}\normalsize\bfseries}{\thesubsubsection}{1em}{}
+
+% Headings
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\textcolor{darkgray}{\small Cahier des Charges Fonctionnel et Technique}}
+\fancyhead[R]{\textcolor{darkgray}{\small ANTIC - DNC}}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0.4pt}
+
+\hypersetup{
+    colorlinks=true,
+    linkcolor=anticblue,
+    filecolor=magenta,      
+    urlcolor=anticred,
+    pdftitle={Cahier des Charges - Conversion Excel Word},
+}
+
+\begin{document}
+
+\begin{titlepage}
+    \centering
+    \vspace*{1cm}
+    
+    {\large \textbf{RÉPUBLIQUE DU CAMEROUN}} \\
+    {\small Paix -- Travail -- Patrie} \\
+    \vspace{0.5cm}
+    \rule{4cm}{0.5pt} \\
+    \vspace{0.5cm}
+    {\large \textbf{AGENCE NATIONALE DES TECHNOLOGIES DE L'INFORMATION ET DE LA COMMUNICATION}} \\
+    \vspace{0.2cm}
+    {\normalsize \textbf{Division de la Normalisation et de la Coopération (DNC)}} \\
+    
+    \vspace{4cm}
+    
+    {\Huge \textbf{\textcolor{anticblue}{CAHIER DES CHARGES}}} \\[0.5cm]
+    {\LARGE \textbf{Fonctionnel et Technique}} \\
+    \vspace{1cm}
+    \rule{\linewidth}{1.5pt} \\[0.5cm]
+    {\Huge \textbf{Plateforme Web de Conversion des Rapports Excel vers Word}} \\[0.2cm]
+    {\Large (Solution Sécurisée de Traitement Bureautique)}
+    \rule{\linewidth}{1.5pt} \\[3cm]
+    
+    {\flushleft \large Ce document présente les spécifications fonctionnelles et techniques relatives à la conception et au développement d'une plateforme web souveraine destinée à automatiser le processus de génération de rapports institutionnels au format Word à partir de jeux de données Excel.\par}
+    
+    \vfill
+    
+    \begin{minipage}{0.45\textwidth}
+        \begin{flushleft}
+        \textbf{A l'attention de :}\\
+        Direction Générale (ANTIC)
+        \end{flushleft}
+    \end{minipage}
+    ~
+    \begin{minipage}{0.45\textwidth}
+        \begin{flushright}
+        \textbf{Équipe de rédaction :}\\
+        Département Ingénierie
+        \end{flushright}
+    \end{minipage}
+    
+    \vspace{2cm}
+    {\normalsize Yaoundé, Août 2026}
+\end{titlepage}
+
+\tableofcontents
+\newpage
+
+\chapter{Présentation de l'Institution et Contexte Général}
+
+\section{Mission de l'Agence et Enjeux de Modernisation}
+L'Agence Nationale des Technologies de l'Information et de la Communication (ANTIC) est le bras séculier de l'État du Cameroun en matière de régulation, de promotion et de sécurisation du cyberespace national. À ce titre, la Division de la Normalisation et de la Coopération (DNC), conjointement avec les autres directions expertes, est amenée à traiter quotidiennement un volume substantiel d'informations sensibles. Ces informations, qui concernent tant l'audit des systèmes d'information, la gestion des incidents de cybersécurité que le suivi administratif des activités sectorielles, sont initialement consolidées sous la forme de tableurs volumineux. Cependant, la communication officielle requiert que ces données brutes soient transposées dans des documents narratifs au format éditable, imposé par la norme bureautique gouvernementale.
+
+\section{Analyse de l'Existant et Problématique}
+Le processus actuellement en place pour générer ces rapports officiels repose exclusivement sur des interventions manuelles chronophages. La transformation exige qu'un ingénieur extraie des sous-ensembles de données depuis Microsoft Excel pour procéder à des opérations de copie et de collage vers Microsoft Word. Ces actions répétitives introduisent inéluctablement un risque élevé d'erreurs de transcription, préjudiciables à l'intégrité des rapports d'État. Face à ce fardeau, l'utilisation, même prohibée, de convertisseurs libres hébergés sur des serveurs étrangers représenterait une faille de souveraineté majeure.
+
+
+\chapter{Matrice des Exigences du Système}
+
+En vue d'encadrer strictement le périmètre du projet et d'éviter les énumérations non exhaustives ou informelles, les attentes formulées par la maîtrise d'ouvrage ont été consolidées au sein d'une matrice distinguant sans équivoque les fonctionnalités métiers attendues (exigences fonctionnelles) des contraintes techniques et sécuritaires (exigences non fonctionnelles).
+
+\section{Exigences Fonctionnelles}
+Ce volet décrit le comportement opérationnel que la plateforme devra impérativement adopter pour satisfaire les processus métiers de la division de normalisation.
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{@{} p{2cm} p{10cm} p{2.5cm} @{}}
+\toprule
+\textbf{ID} & \textbf{Description de la fonctionnalité} & \textbf{Priorité} \\
+\midrule
+\textbf{EF-01} & Le système doit restreindre l'accès par l'authentification d'un compte utilisateur enregistré dans la base de l'agence. & Absolue \\
+\textbf{EF-02} & L'application doit accepter le téléversement exclusif des classeurs aux formats .xlsx et .xls jusqu'à concurrence de 10 Mo. & Absolue \\
+\textbf{EF-03} & Le traducteur documentaire doit convertir chaque feuille de calcul interceptée en un chapitre distinct dans le document final. & Haute \\
+\textbf{EF-04} & Le moteur doit transposer les grilles de données sous forme de tableaux Word formels en respectant les bordures et les alignements. & Haute \\
+\textbf{EF-05} & Le système doit restituer un lien de téléchargement direct et éphémère du fichier .docx généré. & Absolue \\
+\textbf{EF-06} & La plateforme devra offrir un tableau de bord récapitulant l'historique des travaux récents initiés par l'opérateur courant. & Moyenne \\
+\bottomrule
+\end{tabular}
+\caption{Matrice des exigences fonctionnelles}
+\end{table}
+
+\section{Exigences Non-Fonctionnelles}
+Cette grille répertorie les contraintes d'infrastructure, de sécurité et d'ingénierie qui pèsent sur l'implémentation de la solution sans modifier son but premier.
+
+\begin{table}[h]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{@{} p{2cm} p{10cm} p{2.5cm} @{}}
+\toprule
+\textbf{ID} & \textbf{Description de la contrainte sectorielle} & \textbf{Type} \\
+\midrule
+\textbf{ENF-01} & \textbf{Auditeabilité :} Chaque processus de conversion doit être immuablement journalisé avec l'empreinte cryptographique du fichier original et l'identité de l'agent. & Sécurité \\
+\textbf{ENF-02} & \textbf{Éphémérité :} Les mémoires tampons hébergeant les fichiers en transit devront être désinfectées (purges automatiques) sous 5 minutes. & Sécurité \\
+\textbf{ENF-03} & \textbf{Réactivité :} Le temps de calcul imputable au serveur pour l'élaboration d'un rapport de 1000 lignes ne devra pas excéder un délai de 5 secondes. & Performance \\
+\textbf{ENF-04} & \textbf{Aseptisation :} Le système de lecture Excel devra neutraliser et bloquer l'interprétation de toute macro ou formule potentiellement létale contenue dans le fichier source. & Ingénierie \\
+\textbf{ENF-05} & \textbf{Ergonomie :} L'interface homme-machine devra demeurer intuitive (glisser-déposer) sans nécessiter de cursus d'apprentissage pour les agents de l'État. & Opérabilité \\
+\bottomrule
+\end{tabular}
+\caption{Matrice des exigences non-fonctionnelles}
+\end{table}
+
+
+\chapter{Architecture de la Solution Technique}
+
+Afin de garantir le cloisonnement des responsabilités, la robustesse aux pannes et l'évolutivité sereine de la plateforme, l'ingénierie logicielle retenue reposera sur une \textbf{architecture distribuée de type N-Tiers}. Ni monolithique, ni excessivement atomisée, cette structure répartira la charge sur trois niveaux d'abstraction fondamentaux garantissant une intégrité absolue depuis le point de terminaison réseau jusqu'au socle de persistance.
+
+\section{Couche de Présentation (Le Client Front-End)}
+Le premier niveau d'abstraction est constitué par l'interface d'entrée à la disposition exclusive des fonctionnaires habilités. Développée sur le cadriciel applicatif \textbf{React (associé au moteur Vite)}, cette couche prend l'aspect d'une \textit{Application à Page Unique} (SPA). Elle tourne indépendamment des serveurs centraux, exécutée directement depuis l'environnement navigateur de la station cliente de l'agence.
+
+Le rôle prépondérant de cette couche de présentation excède l'esthétisme ; elle assure la validation préventive du type de fichier (mime-type originel) et s'occupe de l'encapsulation cryptographique (via l'injection conditionnelle des jetons porteurs dans l'entête HTTP) avant le routage vers la zone démilitarisée (DMZ).
+
+\section{Couche de Traitement Déléguée (Le Cœur Back-End)}
+Le noyau intellectuel du projet, centralisant les procédures métiers les plus consommatrices, s'incarne dans une application d'entreprise bâtie sur le standard \textbf{Java Spring Boot (Version 3)}. Installé sur un hôte virtuel dédié, ce moteur se pose comme l'ultime rempart contre les vulnérabilités structurelles. 
+
+Cette couche architecturale se scinde logiquement en sous-composants vitaux :
+\begin{itemize}
+    \item \textbf{Le Bouclier d'Authentification :} Instrumentalisé par Spring Security, il intercepte le trafic entrant pour exiger et éprouver l'authenticité des signatures JWT (JSON Web Tokens) des collaborateurs, rejetant irrévocablement les appels anonymes avec le code de bannissement HTTP 401.
+    \item \textbf{L'Atelier de Transmutation :} Invoquant la technologie fédérale Apache POI, ce sous-module détient le privilège d'opérer le désassemblage formel des matrices Excel (format natif) pour remodeler le tissu descriptif produisant le canevas Word. Cette conversion n'externalise ni n'invoque aucun composant bureautique Microsoft dans la mémoire RAM du serveur Linux. 
+\end{itemize}
+
+\section{Couche de Persistance des Données (SGBD)}
+La base de la pyramide d'architecture ne conserve en aucun cas le corpus des documents, par dessein de sécurité. Elle s'érige en notaire central sous l'égide du \textbf{Système de Gestion de Bases de Données PostgreSQL}.
+
+Confiné sur une enclave réseau intraversable depuis l'extérieur, le SGBDR est relié exclusivement à la couche de traitement. Sa fonction se limite volontairement et catégoriquement au suivi méticuleux des paramètres de gestion des carrières (utilisateurs actifs, privilèges associés), ainsi qu'à l'implémentation de la piste de vérification continue dictée par les exigences ENF-01.
+
+\section{Flux d'Exécution et Tolérance aux Pannes}
+Le chassé-croisé des trames de données entre ces couches suit une scénarisation asynchrone pointue. Un serveur de redirection frontal (de type Nginx) assurera la terminaison du protocole crypté (TLS) avant de mandater les flux réguliers vers le port du serveur Spring Boot. Dans l'éventualité d'une montée critique des sollicitations, la structuration sans état de session (« stateless ») du noyau Java autorisera l'instanciation de multiples conteneurs miroirs, garantissant un écoulement des opérations continu lors des périodes de bilan de fin d'année particulièrement chargées.
+
+
+\chapter{Conditions de Réalisation et Homologation}
+
+\section{Livrables Attendus}
+Le projet, conduit de bout en bout, aboutira à la fourniture complète des paquets de déploiement (conteneurs pré-assemblés) du serveur de conversion ainsi que du portail client. En sus du code source versé au répertoire de dépendances de l'institution, le consortium de développement devra délivrer le manifeste descriptif des Interfaces de Programmation (OpenAPI/Swagger) destinées à d'éventuelles rétro-intégrations, ainsi qu'une procédure opérationnelle de restauration de l'environnement applicatif en cas d'effondrement critique du serveur physique.
+
+\section{Critères de Conformité Applicative}
+L'approbation finale conditionnant la mise en production du portail reposera sur l'organisation d'une séquence de simulations fonctionnelles en présence de membres de la direction générale. Le seuil de validation ne sera franchi qu'à l'issue prouvée que l'application ingère et transforme simultanément un ensemble d'opérations parallèles, que les journaux de transaction s'élaborent avec la plus grande fiabilité temporelle, et que l'intrusion sans laissez-passer cryptographique a été contrée à cent pour cent par les pare-feux logiciels mis en place dans l'architecture backend.
+
+\end{document}

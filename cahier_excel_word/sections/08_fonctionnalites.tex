@@ -1,0 +1,98 @@
+\chapter{Spécifications des Exigences}
+
+\section{Exigences fonctionnelles générales}
+
+\renewcommand{\arraystretch}{1.3}
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|L{11.5cm}|c|}
+\hline
+\rowcolor{primarycolor!15}
+\textbf{Spécification de l'Exigence Fonctionnelle} & \textbf{Priorité} \\
+\hline
+Authentification préalable sécurisée par identifiant / mot de passe (ou jeton JWT). & Critique \\
+\hline
+Chargement de classeurs issus de \textbf{Microsoft Excel} ou \textbf{LibreOffice Calc} (\textbf{.xlsx}, \textbf{.xls}, \textbf{.ods}). & Critique \\
+\hline
+\textbf{Ouverture \& Prévisualisation React :} Visualisation interactive du classeur Excel directement dans l'interface web React sans plugin externe. & Critique \\
+\hline
+\textbf{Personnalisation Graphique \& Style :} Édition des polices (taille, famille), des couleurs de fond/texte, des bordures et des alignements de cellules avant conversion. & Critique \\
+\hline
+Plafond de taille des fichiers téléchargés configurable (10 Mo par défaut). & Élevée \\
+\hline
+Inspection du type MIME réel (\textit{magic bytes}) pour interdire le renommage d'exécutables. & Critique \\
+\hline
+Désactivation et neutralisation automatique de toute formule ou macro intégrée au classeur. & Critique \\
+\hline
+Conversion de chaque feuille de calcul (\textit{sheet}) du classeur en un chapitre dédié du document Word. & Critique \\
+\hline
+Génération des tableaux Word en conservant les bordures, couleurs d'en-tête et alignements personnalisés. & Élevée \\
+\hline
+Téléchargement sécurisé et historique personnel des rapports générés. & Élevée \\
+\hline
+Chiffrement au repos (AES-256) et purge automatique après la période de rétention (7 jours) ou sur demande. & Critique \\
+\hline
+Consignation de chaque opération dans un registre d'audit PostgreSQL/MySQL (agent, horodatage, hash SHA-256). & Critique \\
+\hline
+Interface d'administration pour la gestion des comptes, des rôles d'accès et la consultation des journaux. & Élevée \\
+\hline
+\end{tabular}
+\caption{Matrice des exigences fonctionnelles générales}
+\end{table}
+
+\section{Exigences métier avancées (Filtrage, Édition \& Synchronisation)}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|L{11.5cm}|c|}
+\hline
+\rowcolor{primarycolor!15}
+\textbf{Spécification de l'Exigence Métier Avancée} & \textbf{Priorité} \\
+\hline
+\textbf{Mise en page \& AutoFit Word :} Configuration du document Word en mode Paysage (\textit{Landscape}) avec marges ajustées (1,5 cm) et ajustement dynamique de la largeur des tableaux (\textit{AutoFit Window}). & Critique \\
+\hline
+\textbf{Édition Stylistique Avancée :} Application de styles visuels personnalisés (couleurs d'en-tête ANTIC, polices institutionnelles) enregistrés automatiquement lors de l'exportation. & Élevée \\
+\hline
+\textbf{Filtrage à la Source :} Sélection des feuilles/colonnes et application de critères de filtrage dynamiques avant conversion. & Élevée \\
+\hline
+\textbf{Création de Feuille Enfant (.xlsx vers .xlsx) :} Génération d'une nouvelle feuille enfant (\textit{Child Sheet}) filtrée au sein du classeur Excel source à partir d'une feuille parente. & Critique \\
+\hline
+\textbf{Double Exportation :} Choix entre télécharger le classeur Excel enrichi de sa sous-feuille ou lancer la conversion directe vers Word. & Élevée \\
+\hline
+\textbf{Synchronisation Automatique :} Répercussion automatique et en temps réel de toute modification apportée à la feuille parente sur les sous-feuilles dérivées. & Critique \\
+\hline
+\end{tabular}
+\caption{Matrice des exigences métier avancées}
+\end{table}
+
+\section{Exigences non fonctionnelles}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|L{11.5cm}|c|}
+\hline
+\rowcolor{primarycolor!15}
+\textbf{Spécification de l'Exigence Non Fonctionnelle} & \textbf{Domaine} \\
+\hline
+\textbf{Performance :} Temps de conversion d'un fichier de 10 Mo inférieur à 8 secondes. & Efficacité \\
+\hline
+\textbf{Ergonomie Frontend :} Interface 100\% réactive développée sous React.js avec affichage fluide du composant tableur. & UX / React \\
+\hline
+\textbf{Sécurité :} Communications réseau chiffrées au moyen du protocole TLS/HTTPS. & Sécurité \\
+\hline
+\textbf{Confidentialité :} Stockage chiffré au repos (AES-256) avec purge automatique à 7 jours. & Souveraineté \\
+\hline
+\textbf{Disponibilité :} Taux de disponibilité de 99,5\% pendant les heures d'ouverture. & Fiabilité \\
+\hline
+\textbf{Maintenabilité :} Backend Python FastAPI et composants React séparés respectant les règles d'architecture N-Tiers. & Qualité \\
+\hline
+\textbf{Portabilité :} Solution conteneurisée sous Docker pour exécution sur tout OS d'État. & Déploiement \\
+\hline
+\textbf{Auditabilité :} Base de données PostgreSQL / MySQL archivant les traces sous forme d'enregistrements immuables. & Conformité \\
+\hline
+\end{tabular}
+\caption{Matrice des exigences non fonctionnelles}
+\end{table}

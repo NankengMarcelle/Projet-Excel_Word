@@ -1,0 +1,11 @@
+PWD /home/nankeng/Documents/SolutionExcel_Word
+INPUT /etc/texmf/web2c/texmf.cnf
+INPUT /usr/share/texmf/web2c/texmf.cnf
+INPUT /usr/share/texlive/texmf-dist/web2c/texmf.cnf
+INPUT /var/lib/texmf/web2c/pdftex/pdflatex.fmt
+INPUT /home/nankeng/Documents/SolutionExcel_Word/vba_macro_report.tex
+OUTPUT vba_macro_report.log
+INPUT /usr/share/texlive/texmf-dist/fonts/map/fontname/texfonts.map
+INPUT /usr/share/texlive/texmf-dist/fonts/tfm/public/cm/cmtt10.tfm
+OUTPUT vba_macro_report.pdf
+INPUT /var/lib/texmf/fonts/map/pdftex/updmap/pdftex.map

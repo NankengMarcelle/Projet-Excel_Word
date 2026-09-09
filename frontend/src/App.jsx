@@ -1,0 +1,321 @@
+import React, { useState, useEffect } from 'react';
+import Header from './components/Header';
+import Sidebar from './components/Sidebar';
+import DashboardView from './components/DashboardView';
+import FortuneSheetEditor from './components/FortuneSheetEditor';
+import WorkbookManagementView from './components/WorkbookManagementView';
+import WordFilesView from './components/WordFilesView';
+import NotificationsView from './components/NotificationsView';
+import CollaborationView from './components/CollaborationView';
+import UserManagementView from './components/UserManagementView';
+import UserProfileView from './components/UserProfileView';
+import SheetToWordModal from './components/SheetToWordModal';
+import FileUploader from './components/FileUploader';
+import LoginView from './components/LoginView';
+
+import { CheckCircle2, AlertCircle, AlertTriangle, X } from 'lucide-react';
+import { currentUser, sampleWorkbooks, conversionHistory } from './data/mockData';
+
+export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('antic_auth') === 'true';
+  });
+  const [activeView, setActiveView] = useState('dashboard');
+  const [theme, setTheme] = useState('dark');
+  const [lang, setLang] = useState(() => {
+    return localStorage.getItem('antic_lang') || 'fr';
+  });
+  const [workbooks, setWorkbooks] = useState(sampleWorkbooks);
+  const [conversions, setConversions] = useState(conversionHistory);
+  const [selectedWorkbook, setSelectedWorkbook] = useState(null);
+
+  // Top-Level Persistent User Photo State
+  const [userPhoto, setUserPhoto] = useState(() => {
+    return localStorage.getItem('antic_user_photo') || null;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('antic_lang', lang);
+  }, [lang]);
+
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [convertModal, setConvertModal] = useState({ isOpen: false, workbook: null, sheetName: '' });
+
+  // Floating Toast System State
+  const [toast, setToast] = useState({ visible: false, message: '', type: 'success' });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ visible: true, message, type });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, 4000);
+  };
+
+  const getToastStyle = (type) => {
+    switch (type) {
+      case 'error':
+        return { bg: '#DC2626', border: '#EF4444', icon: <AlertCircle size={20} color="#FFF" /> };
+      case 'warning':
+      case 'info':
+        return { bg: '#D97706', border: '#F59E0B', icon: <AlertTriangle size={20} color="#FFF" /> };
+      case 'success':
+      default:
+        return { bg: '#059669', border: '#10B981', icon: <CheckCircle2 size={20} color="#FFF" /> };
+    }
+  };
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
+
+  const handleSelectWorkbook = (wb) => {
+    setSelectedWorkbook(wb);
+    setActiveView('editor');
+  };
+
+  const handleOpenConvertModal = (wb = selectedWorkbook, sheetName = '') => {
+    setConvertModal({
+      isOpen: true,
+      workbook: wb,
+      sheetName: sheetName || (wb?.sheets[0]?.name || '')
+    });
+  };
+
+  const handleConversionComplete = (newConversion) => {
+    setConversions(prev => [
+      {
+        id: `conv-${Date.now()}`,
+        ...newConversion,
+        status: "Terminé"
+      },
+      ...prev
+    ]);
+    showToast("Conversion Word terminée avec succès !", "success");
+  };
+
+  const handleUploadSuccess = (newWorkbook) => {
+    setWorkbooks(prev => [newWorkbook, ...prev]);
+    setSelectedWorkbook(newWorkbook);
+    setActiveView('workbooks');
+    showToast(lang === 'fr' ? `Classeur "${newWorkbook.name}" importé avec succès !` : `Workbook "${newWorkbook.name}" uploaded successfully!`, "success");
+  };
+
+  if (!isAuthenticated) {
+    const toastConfig = getToastStyle(toast.type);
+    return (
+      <>
+        <LoginView
+          onLoginSuccess={() => {
+            localStorage.setItem('antic_auth', 'true');
+            setIsAuthenticated(true);
+          }}
+          lang={lang}
+          setLang={setLang}
+          showToast={showToast}
+        />
+
+        {/* Floating Toast Pop-up Positioned AT THE TOP */}
+        {toast.visible && (
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 99999,
+            background: toastConfig.bg,
+            color: '#FFFFFF',
+            padding: '0.85rem 1.4rem',
+            borderRadius: '14px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '0.875rem',
+            fontWeight: 700,
+            border: `1.5px solid ${toastConfig.border}`,
+            animation: 'fadeIn 0.3s ease'
+          }}>
+            {toastConfig.icon}
+            <span>{toast.message}</span>
+            <button onClick={() => setToast({ ...toast, visible: false })} style={{ background: 'none', border: 'none', color: '#FFFFFF', cursor: 'pointer', marginLeft: '6px' }}>
+              <X size={16} />
+            </button>
+          </div>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <div style={{ minHeight: '100vh', background: '#F8FAFC', display: 'flex' }}>
+
+      {/* Deep Imperial Navy Left Sidebar (#02006c) */}
+      <Sidebar
+        activeView={activeView}
+        setActiveView={setActiveView}
+        onOpenUploadModal={() => setUploadModalOpen(true)}
+        currentUser={currentUser}
+        userPhoto={userPhoto}
+        lang={lang}
+        setLang={setLang}
+        onLogout={() => {
+          localStorage.setItem('antic_auth', 'false');
+          setIsAuthenticated(false);
+          showToast("Déconnexion de la session agent effectuée.", "info");
+        }}
+      />
+
+      {/* Main Workspace Frame */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, height: '100vh', overflow: 'hidden', background: '#FFFFFF' }}>
+
+        {/* Top Header Bar */}
+        <Header
+          currentUser={currentUser}
+          userPhoto={userPhoto}
+          theme={theme}
+          toggleTheme={toggleTheme}
+          activeView={activeView}
+          setActiveView={setActiveView}
+          lang={lang}
+          setLang={setLang}
+          onOpenUserProfile={() => setActiveView('profile')}
+        />
+
+        {/* Dynamic Workspace Container Views */}
+        <main style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%' }}>
+
+          {activeView === 'dashboard' && (
+            <DashboardView
+              workbooks={workbooks}
+              conversions={conversions}
+              onSelectWorkbook={handleSelectWorkbook}
+              onOpenConvertModal={handleOpenConvertModal}
+              onOpenUploadModal={() => setUploadModalOpen(true)}
+              lang={lang}
+            />
+          )}
+
+          {activeView === 'editor' && (
+            <FortuneSheetEditor
+              selectedWorkbook={selectedWorkbook}
+              onOpenConvertModal={handleOpenConvertModal}
+              onBackToDashboard={() => setActiveView('dashboard')}
+              lang={lang}
+            />
+          )}
+
+          {activeView === 'workbooks' && (
+            <WorkbookManagementView
+              workbooks={workbooks}
+              onSelectWorkbook={handleSelectWorkbook}
+              onOpenConvertModal={handleOpenConvertModal}
+              onOpenUploadModal={() => setUploadModalOpen(true)}
+              lang={lang}
+            />
+          )}
+
+          {(activeView === 'conversions' || activeView === 'word_files') && (
+            <WordFilesView
+              conversions={conversions}
+              onSelectWorkbook={handleSelectWorkbook}
+              lang={lang}
+            />
+          )}
+
+          {activeView === 'notifications' && (
+            <NotificationsView
+              onSelectWorkbook={handleSelectWorkbook}
+              lang={lang}
+            />
+          )}
+
+          {activeView === 'collaboration' && (
+            <CollaborationView
+              currentUser={currentUser}
+              workbooks={workbooks}
+              onSelectWorkbook={handleSelectWorkbook}
+              showToast={showToast}
+              lang={lang}
+            />
+          )}
+
+          {/* DEDICATED FULL-PAGE USER PROFILE CONTAINER VIEW */}
+          {activeView === 'profile' && (
+            <UserProfileView
+              currentUser={currentUser}
+              userPhoto={userPhoto}
+              setUserPhoto={setUserPhoto}
+              onBackToDashboard={() => setActiveView('dashboard')}
+              onLogout={() => setIsAuthenticated(false)}
+              lang={lang}
+              showToast={showToast}
+            />
+          )}
+
+          {activeView === 'users' && (
+            <UserManagementView lang={lang} />
+          )}
+
+        </main>
+      </div>
+
+      {/* Modals */}
+      {uploadModalOpen && (
+        <FileUploader
+          onClose={() => setUploadModalOpen(false)}
+          onUploadSuccess={handleUploadSuccess}
+          lang={lang}
+        />
+      )}
+
+      {convertModal.isOpen && (
+        <SheetToWordModal
+          workbook={convertModal.workbook}
+          initialSheetName={convertModal.sheetName}
+          onClose={() => setConvertModal({ isOpen: false, workbook: null, sheetName: '' })}
+          onConversionComplete={handleConversionComplete}
+        />
+      )}
+
+      {/* ─── GLOBAL FLOATING TOAST POP-UP SYSTEM (TOP OF SCREEN) ─── */}
+      {toast.visible && (() => {
+        const toastConfig = getToastStyle(toast.type);
+        return (
+          <div style={{
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 99999,
+            background: toastConfig.bg,
+            color: '#FFFFFF',
+            padding: '0.85rem 1.4rem',
+            borderRadius: '14px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.25)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            fontSize: '0.875rem',
+            fontWeight: 700,
+            border: `1.5px solid ${toastConfig.border}`,
+            animation: 'fadeIn 0.3s ease'
+          }}>
+            {toastConfig.icon}
+            <span>{toast.message}</span>
+            <button
+              onClick={() => setToast({ ...toast, visible: false })}
+              style={{ background: 'none', border: 'none', color: '#FFFFFF', cursor: 'pointer', marginLeft: '6px' }}
+            >
+              <X size={16} />
+            </button>
+          </div>
+        );
+      })()}
+
+    </div>
+  );
+}

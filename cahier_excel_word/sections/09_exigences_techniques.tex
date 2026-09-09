@@ -1,0 +1,70 @@
+\chapter{Architecture générale et Choix technologiques}
+
+\section{Choix des technologies}
+
+\subsection{Frontend : React (React.js)}
+
+React.js constitue l'interface utilisateur dynamique de la plateforme.
+\begin{itemize}
+    \item \textbf{Interface Composant \& Réactivité :} Gestion fluide de l'état de l'application et mise à jour instantanée du composant tableur ;
+    \item \textbf{Prévisualisation \& Édition de Style :} Visualisation directe des fichiers Excel et personnalisation interactive des polices, bordures, couleurs et alignements ;
+    \item \textbf{Intégration API :} Communication asynchrone sécurisée avec le backend FastAPI via des requêtes chiffrées JWT.
+\end{itemize}
+
+\subsection{Backend : Python 3.11 \& FastAPI}
+
+FastAPI constitue le cœur applicatif léger de la solution.
+\begin{itemize}
+    \item \textbf{Syntaxe fluide \& Documentation automatique :} Génération native de l'interface interactive Swagger UI (`/docs`) ;
+    \item \textbf{Sanitarisation à l'entrée :} Validation stricte des octets magiques (\textit{Magic Bytes}) pour garantir l'extension réelle, suppression automatique des macros/VBA et neutralisation des formules exécutables ;
+    \item \textbf{Moteur Python (openpyxl \& python-docx) :} Traitement bi-module en mémoire : \texttt{openpyxl} effectue l'application des filtres, des styles et la création des sous-feuilles, tandis que \texttt{python-docx} gère la conversion au format Word.
+\end{itemize}
+
+\subsection{Reverse Proxy : Nginx}
+
+Nginx assure le rôle de passerelle réseau d'entrée et de serveur reverse proxy.
+\begin{itemize}
+    \item \textbf{Sécurisation SSL/TLS :} Terminaison du chiffrement HTTPS pour garantir la confidentialité des échanges sur le réseau intranet de l'ANTIC ;
+    \item \textbf{Routage \& Filtrage :} Redirection optimale des requêtes statiques React et des appels API dynamiques vers le backend FastAPI.
+\end{itemize}
+
+\subsection{Base de Données : PostgreSQL / MySQL (via SQLAlchemy)}
+
+L'ORM SQLAlchemy permet d'exploiter la puissance des SGDBR d'État \textbf{PostgreSQL} ou \textbf{MySQL}.
+\begin{itemize}
+    \item \textbf{Passerelle \& Traducteur (SQLAlchemy) :} Le backend FastAPI étant codé en Python et la base de données ne parlant que le langage SQL, SQLAlchemy agit comme une passerelle entre ces deux mondes. Il évite ainsi l'écriture manuelle de requêtes SQL brutes dans le code Python (difficile à maintenir et risquée pour la sécurité) ;
+    \item \textbf{Gestion des Rôles (RBAC) :} Stockage persistant hautement sécurisé des comptes d'utilisateurs et des privilèges d'accès ;
+    \item \textbf{Audit \& Traçabilité :} Consignation immuable des journaux d'audit chiffrés en \textbf{SHA-256} pour la traçabilité des opérations.
+\end{itemize}
+
+\subsection{Infrastructures : Docker et Docker Compose}
+
+L'ensemble de la plateforme (React, FastAPI, Nginx, PostgreSQL/MySQL) est conteneurisé sous Docker et orchestré par Docker Compose avec conservation des fichiers générés sur le **serveur local de l'ANTIC** (chiffrement AES-256).
+
+\section{Synthèse de la stack technique}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{|L{3cm}|L{3.5cm}|L{7.5cm}|}
+\hline
+\rowcolor{primarycolor!15}
+\textbf{Composant} & \textbf{Technologie} & \textbf{Rôle et Justification} \\
+\hline
+\textbf{Frontend} & React (React.js) & Interface Web composant, éditique Excel et prévisualisation réactive. \\
+\hline
+\textbf{Backend API} & Python 3.11 / FastAPI & API REST asynchrone, sanitarisation (\textit{Magic Bytes}) et sécurité JWT. \\
+\hline
+\textbf{Reverse Proxy} & Nginx & Sécurisation SSL/TLS et routage réseau des requêtes API/React. \\
+\hline
+\textbf{Moteur Conversion} & python-docx \& openpyxl & Transformation et mise en forme automatisée des structures Excel/Word. \\
+\hline
+\textbf{Base de Données} & PostgreSQL / MySQL & Stockage relationnel persistant et registre d'audit immuable SHA-256. \\
+\hline
+\textbf{Stockage Fichiers} & Serveur Local ANTIC & Stockage chiffré (AES-256) avec purge automatique à 7 jours. \\
+\hline
+\textbf{Conteneurisation} & Docker \& Compose & Isolation des microservices et déploiement intranet autonome. \\
+\hline
+\end{tabular}
+\caption{Synthèse des choix technologiques de l'architecture}
+\end{table}

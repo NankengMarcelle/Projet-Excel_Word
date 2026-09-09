@@ -1,0 +1,26 @@
+\chapter{Présentation générale et Contexte}
+
+Au sein de l'Agence Nationale des Technologies de l'Information et de la Communication (ANTIC), les directions opérationnelles consolident quotidiennement des tableaux de bord sous forme de classeurs tableurs issus de \textbf{Microsoft Excel} ou \textbf{LibreOffice Calc} (\textbf{.xlsx, .xls, .ods}). Si le tableur est privilégié pour la manipulation des calculs et l'analyse numérique, la transmission officielle aux autorités exige la production de rapports formels sous \textbf{Microsoft Word} (\textbf{.docx}).
+
+Actuellement, ce passage du tableur vers le document Word repose sur un traitement manuel : ouverture du classeur, sélection et filtrage des données, transfert par copier-coller vers Word, puis réajustement des styles, des bordures et des colonnes pour chaque onglet traité.
+
+Le projet consiste donc à mettre en place une plateforme web souveraine permettant, d'une part, d'automatiser le filtrage dynamique des données avec création et synchronisation en temps réel de feuilles enfants, et d'autre part, de générer automatiquement, de façon indépendante pour chaque feuille, des documents Word normalisés, sous le contrôle d'un \textbf{Administrateur Système} et au bénéfice de \textbf{l'ensemble des employés et agents de l'ANTIC}.
+
+\section{Périmètre du projet}
+
+Le périmètre du projet englobe l'ensemble du cycle de traitement documentaire :
+\begin{itemize}
+    \item Authentification sécurisée des utilisateurs (jetons JWT) ;
+    \item Contrôle de conformité et sanitarisation automatique des classeurs (suppression des macros et scripts executables) ;
+    \item Module de filtrage dynamique et synchronisation automatique des sous-feuilles Excel ;
+    \item Moteur de conversion directe vers Word en mode Paysage (\textit{AutoFit Window}) ;
+    \item Stockage local sécurisé sur les serveurs de l'ANTIC avec chiffrement AES-256 et registres d'audit PostgreSQL/MySQL (SHA-256).
+\end{itemize}
+
+\section{Parties prenantes}
+
+\begin{itemize}
+    \item \textbf{Maître d'ouvrage :} ANTIC ;
+    \item \textbf{Équipe projet :} Équipe technique de développement ;
+    \item \textbf{Utilisateurs :} Ensemble des employés et agents de l'ANTIC, sous la supervision d'un Administrateur Système.
+\end{itemize}

@@ -28,7 +28,8 @@ import {
     Filter,
     RefreshCw,
     Layers,
-    Save
+    Save,
+    Grid
 } from 'lucide-react';
 import WordDocumentPreviewModal from './WordDocumentPreviewModal';
 import ColorPickerPopover from './ColorPickerPopover';
@@ -165,6 +166,17 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
     // Row & Column heights / widths / hidden tracking
     const [rowHeights, setRowHeights] = useState({});
     const [colWidths, setColWidths] = useState({});
+
+    useEffect(() => {
+        const sheets = currentWorkbook?.sheets || [];
+        const activeSheet = sheets[activeSheetIndex] || sheets[0];
+        if (activeSheet) {
+            setCellStyles(activeSheet.cellStyles || {});
+            setColWidths(activeSheet.colWidths || {});
+            setRowHeights(activeSheet.rowHeights || {});
+        }
+    }, [currentWorkbook, activeSheetIndex]);
+
     const [hiddenRows, setHiddenRows] = useState(new Set());
     const [hiddenCols, setHiddenCols] = useState(new Set());
     const [frozenRow, setFrozenRow] = useState(false);
@@ -259,6 +271,19 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
             setStatusMessage(`Feuille "${sheetToCopy.name}" copiée dans le presse-papier.`);
             setTimeout(() => setStatusMessage(''), 3000);
         }
+        setActiveSheetMenu(null);
+    };
+
+    const handlePasteSheet = () => {
+        if (!copiedSheet) return;
+        const currentSheets = currentWorkbook?.sheets || [];
+        const newSheetName = `${copiedSheet.name}_copie`;
+        const newSheet = { ...JSON.parse(JSON.stringify(copiedSheet)), name: newSheetName };
+        const updatedSheets = [...currentSheets, newSheet];
+        setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
+        setActiveSheetIndex(updatedSheets.length - 1);
+        setStatusMessage(`Feuille "${newSheetName}" collée avec succès.`);
+        setTimeout(() => setStatusMessage(''), 3000);
         setActiveSheetMenu(null);
     };
 
@@ -364,12 +389,71 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
         setTimeout(() => setStatusMessage(''), 4000);
     };
 
+    const sheets = currentWorkbook?.sheets || [];
+    const currentSheet = sheets[activeSheetIndex] || sheets[0] || { name: 'Feuille1', data: createEmptySheetData(50, 26), merges: [] };
+    const sheetData = currentSheet.data || createEmptySheetData(50, 26);
+
     const minR = Math.min(selectionRange.start.r, selectionRange.end.r);
     const maxR = Math.max(selectionRange.start.r, selectionRange.end.r);
     const minC = Math.min(selectionRange.start.c, selectionRange.end.c);
     const maxC = Math.max(selectionRange.start.c, selectionRange.end.c);
 
     const isCellSelected = (r, c) => r >= minR && r <= maxR && c >= minC && c <= maxC;
+
+    // Helper: Determine if cell is master, covered, or unmerged
+    const getMergeInfo = (r, c, merges = []) => {
+        if (!merges || merges.length === 0) return null;
+        for (const m of merges) {
+            if (r >= m.startRow && r <= m.endRow && c >= m.startCol && c <= m.endCol) {
+                if (r === m.startRow && c === m.startCol) {
+                    return { isMaster: true, rowSpan: m.rowSpan, colSpan: m.colSpan };
+                }
+                return { isCovered: true };
+            }
+        }
+        return null;
+    };
+
+    // Action: Merge or Unmerge selected range
+    const handleToggleMergeSelection = () => {
+        const currentMerges = currentSheet.merges || [];
+        const isMultiCell = minR !== maxR || minC !== maxC;
+        if (!isMultiCell) {
+            // Check if active single cell is in an existing merge -> unmerge it
+            const existingIdx = currentMerges.findIndex(m => minR >= m.startRow && minR <= m.endRow && minC >= m.startCol && minC <= m.endCol);
+            if (existingIdx !== -1) {
+                const updatedMerges = currentMerges.filter((_, idx) => idx !== existingIdx);
+                const updatedSheets = [...sheets];
+                updatedSheets[activeSheetIndex] = { ...currentSheet, merges: updatedMerges };
+                setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
+                setStatusMessage("Cellules défusionnées.");
+                setTimeout(() => setStatusMessage(''), 3000);
+            } else {
+                setStatusMessage("Veuillez sélectionner plusieurs cellules pour les fusionner.");
+                setTimeout(() => setStatusMessage(''), 3000);
+            }
+            return;
+        }
+
+        // Add new merge range
+        const newMerge = {
+            startRow: minR,
+            startCol: minC,
+            endRow: maxR,
+            endCol: maxC,
+            rowSpan: maxR - minR + 1,
+            colSpan: maxC - minC + 1
+        };
+
+        // Filter out overlapping merges
+        const filteredMerges = currentMerges.filter(m => !(m.startRow >= minR && m.endRow <= maxR && m.startCol >= minC && m.endCol <= maxC));
+        const updatedMerges = [...filteredMerges, newMerge];
+        const updatedSheets = [...sheets];
+        updatedSheets[activeSheetIndex] = { ...currentSheet, merges: updatedMerges };
+        setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
+        setStatusMessage(`Cellules ${getColLabel(minC)}${minR + 1}:${getColLabel(maxC)}${maxR + 1} fusionnées (${newMerge.rowSpan}x${newMerge.colSpan}).`);
+        setTimeout(() => setStatusMessage(''), 3000);
+    };
 
     const applyStyleToSelectedRange = (stylePatch) => {
         setCellStyles(prev => {
@@ -430,6 +514,75 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
         applyStyleToSelectedRange({ fontSize: `${sizeStr.replace(/px/g, '') || 13}px` });
     };
 
+    const parseColor = (colorObj) => {
+        if (!colorObj) return null;
+        if (typeof colorObj === 'string') return colorObj.startsWith('#') ? colorObj : `#${colorObj}`;
+        if (colorObj.rgb) {
+            let hex = colorObj.rgb;
+            if (hex.length === 8) hex = hex.substring(2);
+            return `#${hex}`;
+        }
+        return null;
+    };
+
+    const parseSheetStylesAndDimensions = (worksheet) => {
+        const cellStyles = {};
+        const colWidths = {};
+        const rowHeights = {};
+
+        if (worksheet['!cols'] && Array.isArray(worksheet['!cols'])) {
+            worksheet['!cols'].forEach((col, idx) => {
+                if (!col) return;
+                if (col.wpx) colWidths[idx] = col.wpx;
+                else if (col.width) colWidths[idx] = Math.round(col.width * 8);
+            });
+        }
+
+        if (worksheet['!rows'] && Array.isArray(worksheet['!rows'])) {
+            worksheet['!rows'].forEach((row, idx) => {
+                if (!row) return;
+                if (row.hpx) rowHeights[idx] = row.hpx;
+                else if (row.hpt) rowHeights[idx] = Math.round(row.hpt * 1.33);
+            });
+        }
+
+        const ref = worksheet['!ref'] || 'A1';
+        const range = XLSX.utils.decode_range(ref);
+        for (let R = range.s.r; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                const cell = worksheet[cellAddress];
+                if (!cell || !cell.s) continue;
+
+                const styleObj = {};
+                const s = cell.s;
+
+                if (s.font) {
+                    if (s.font.bold) styleObj.bold = true;
+                    if (s.font.italic) styleObj.italic = true;
+                    if (s.font.underline) styleObj.underline = true;
+                    if (s.font.name) styleObj.fontFamily = s.font.name;
+                    if (s.font.sz || s.font.size) styleObj.fontSize = `${s.font.sz || s.font.size}px`;
+                    const fontColor = parseColor(s.font.color);
+                    if (fontColor) styleObj.color = fontColor;
+                }
+
+                const bgColor = parseColor(s.fgColor || s.fill?.fgColor || s.fill?.bgColor);
+                if (bgColor && bgColor !== '#FFFFFF') styleObj.bg = bgColor;
+
+                if (s.alignment && s.alignment.horizontal) {
+                    styleObj.align = s.alignment.horizontal;
+                }
+
+                if (Object.keys(styleObj).length > 0) {
+                    cellStyles[`${R}_${C}`] = styleObj;
+                }
+            }
+        }
+
+        return { cellStyles, colWidths, rowHeights };
+    };
+
     const handleFileUpload = (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -437,10 +590,22 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
         reader.onload = (evt) => {
             try {
                 const data = new Uint8Array(evt.target.result);
-                const wb = XLSX.read(data, { type: 'array' });
+                const wb = XLSX.read(data, { type: 'array', cellStyles: true, cellFormulas: true, cellDates: true, cellNF: true });
                 const parsedSheets = wb.SheetNames.map(sheetName => {
                     const worksheet = wb.Sheets[sheetName];
                     const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                    const rawMerges = worksheet['!merges'] || [];
+                    const merges = rawMerges.map(m => ({
+                        startRow: m.s.r,
+                        startCol: m.s.c,
+                        endRow: m.e.r,
+                        endCol: m.e.c,
+                        rowSpan: m.e.r - m.s.r + 1,
+                        colSpan: m.e.c - m.s.c + 1
+                    }));
+
+                    const { cellStyles: sheetCellStyles, colWidths: sheetColWidths, rowHeights: sheetRowHeights } = parseSheetStylesAndDimensions(worksheet);
+
                     const rowCount = Math.max(jsonData.length, 50);
                     const colCount = Math.max(jsonData[0] ? jsonData[0].length : 0, 26);
                     const fullData = [];
@@ -451,10 +616,11 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
                         }
                         fullData.push(row);
                     }
-                    return { name: sheetName, data: fullData };
+                    return { name: sheetName, data: fullData, merges, cellStyles: sheetCellStyles, colWidths: sheetColWidths, rowHeights: sheetRowHeights };
                 });
                 setCurrentWorkbook({ name: file.name, sheets: parsedSheets });
-                setStatusMessage(`Fichier "${file.name}" chargé.`);
+                setActiveSheetIndex(0);
+                setStatusMessage(`Fichier "${file.name}" chargé avec ${parsedSheets.reduce((acc, s) => acc + (s.merges?.length || 0), 0)} cellule(s) fusionnée(s).`);
                 setTimeout(() => setStatusMessage(''), 4000);
             } catch (err) {
                 console.error(err);
@@ -465,9 +631,6 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
         reader.readAsArrayBuffer(file);
     };
 
-    const sheets = currentWorkbook?.sheets || [{ name: 'Feuille1', data: createEmptySheetData(50, 26) }];
-    const currentSheet = sheets[activeSheetIndex] || sheets[0];
-    const sheetData = currentSheet.data || createEmptySheetData(50, 26);
 
     const handleSaveExcelWorkbook = () => {
         try {
@@ -883,6 +1046,31 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
 
                 <div style={{ width: '1px', height: '22px', background: '#CBD5E1' }} />
 
+                {/* Merge / Unmerge Cells Button */}
+                <CustomTooltip text="Fusionner / Défusionner les cellules sélectionnées">
+                    <button
+                        onClick={handleToggleMergeSelection}
+                        style={{
+                            padding: '5px 8px',
+                            borderRadius: '6px',
+                            border: '1px solid #CBD5E1',
+                            background: '#FFF',
+                            color: '#02006c',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontWeight: 700,
+                            fontSize: '0.75rem'
+                        }}
+                    >
+                        <Grid size={14} color="#02006c" />
+                        <span>Fusionner</span>
+                    </button>
+                </CustomTooltip>
+
+                <div style={{ width: '1px', height: '22px', background: '#CBD5E1' }} />
+
                 {/* Word Conversion Icon Button */}
                 <CustomTooltip text="Convertir au format Word (.docx)">
                     <button
@@ -1000,12 +1188,17 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
                                     </td>
                                     {row.map((cellValue, cIdx) => {
                                         if (hiddenCols.has(cIdx)) return null;
+                                        const mergeInfo = getMergeInfo(rIdx, cIdx, currentSheet.merges);
+                                        if (mergeInfo?.isCovered) return null;
+
                                         const selected = isCellSelected(rIdx, cIdx);
                                         const isEditingThisCell = editingCell && editingCell.r === rIdx && editingCell.c === cIdx;
                                         const customStyle = cellStyles[`${rIdx}_${cIdx}`] || {};
                                         return (
                                             <td
                                                 key={cIdx}
+                                                rowSpan={mergeInfo?.isMaster ? mergeInfo.rowSpan : undefined}
+                                                colSpan={mergeInfo?.isMaster ? mergeInfo.colSpan : undefined}
                                                 onMouseDown={() => handleCellMouseDown(rIdx, cIdx)}
                                                 onMouseEnter={() => handleCellMouseEnter(rIdx, cIdx)}
                                                 onDoubleClick={() => handleCellDoubleClick(rIdx, cIdx)}

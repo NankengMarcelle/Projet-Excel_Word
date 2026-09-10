@@ -19,15 +19,50 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
         ['Donnée Exemple B', '300 000 FCFA', '290 000 FCFA', 'Validé']
     ];
 
+    const merges = targetSheet?.merges || [];
+
+    const getMergeInfo = (r, c) => {
+        if (!merges || merges.length === 0) return null;
+        for (const m of merges) {
+            if (r >= m.startRow && r <= m.endRow && c >= m.startCol && c <= m.endCol) {
+                if (r === m.startRow && c === m.startCol) {
+                    return { isMaster: true, rowSpan: m.rowSpan, colSpan: m.colSpan };
+                }
+                return { isCovered: true };
+            }
+        }
+        return null;
+    };
+
     const handleExport = () => {
         setIsExporting(true);
 
         const docTitle = workbook?.name ? workbook.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' ') : "DOCUMENT DE SYNTHÈSE";
         const docFileName = `${docTitle.replace(/\s+/g, '_')}_Officiel.docx`;
 
+        const cellStylesMap = targetSheet?.cellStyles || {};
+
         const headerHtml = headerRow.map(c => `<th style="background-color: #02006c; color: #FFFFFF; font-weight: bold; padding: 8px; border: 1px solid #02006c;">${String(c || '')}</th>`).join('');
         const bodyHtml = bodyRows.map((row, rIdx) => {
-            const cellsHtml = headerRow.map((_, cIdx) => `<td style="padding: 6px 8px; border: 1px solid #CBD5E1;">${row && row[cIdx] !== undefined ? String(row[cIdx]) : ''}</td>`).join('');
+            const cellsHtml = headerRow.map((_, cIdx) => {
+                const info = getMergeInfo(rIdx + 1, cIdx);
+                if (info?.isCovered) return '';
+                const spanAttrs = info?.isMaster ? `rowspan="${info.rowSpan}" colspan="${info.colSpan}"` : '';
+
+                const cStyle = cellStylesMap[`${rIdx + 1}_${cIdx}`] || {};
+                const inlineStyles = [
+                    'padding: 6px 8px',
+                    'border: 1px solid #CBD5E1',
+                    cStyle.color ? `color: ${cStyle.color}` : '',
+                    cStyle.bg ? `background-color: ${cStyle.bg}` : '',
+                    cStyle.bold ? 'font-weight: bold' : '',
+                    cStyle.italic ? 'font-style: italic' : '',
+                    cStyle.align ? `text-align: ${cStyle.align}` : '',
+                    cStyle.fontSize ? `font-size: ${cStyle.fontSize}` : ''
+                ].filter(Boolean).join('; ');
+
+                return `<td ${spanAttrs} style="${inlineStyles}">${row && row[cIdx] !== undefined ? String(row[cIdx]) : ''}</td>`;
+            }).join('');
             return `<tr style="background-color: ${rIdx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">${cellsHtml}</tr>`;
         }).join('');
 
@@ -286,11 +321,30 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
                                         <tbody>
                                             {bodyRows.map((row, rIdx) => (
                                                 <tr key={rIdx} style={{ background: rIdx % 2 === 0 ? '#FFFFFF' : '#F8FAFC' }}>
-                                                    {headerRow.map((_, cIdx) => (
-                                                        <td key={cIdx} style={{ padding: '4px 6px', border: '1px solid #E2E8F0', color: '#1E293B' }}>
-                                                            {row && row[cIdx] !== undefined ? String(row[cIdx]) : ''}
-                                                        </td>
-                                                    ))}
+                                                    {headerRow.map((_, cIdx) => {
+                                                        const info = getMergeInfo(rIdx + 1, cIdx);
+                                                        if (info?.isCovered) return null;
+                                                        const cStyle = targetSheet?.cellStyles?.[`${rIdx + 1}_${cIdx}`] || {};
+                                                        return (
+                                                            <td
+                                                                key={cIdx}
+                                                                rowSpan={info?.isMaster ? info.rowSpan : undefined}
+                                                                colSpan={info?.isMaster ? info.colSpan : undefined}
+                                                                style={{
+                                                                    padding: '4px 6px',
+                                                                    border: '1px solid #E2E8F0',
+                                                                    color: cStyle.color || '#1E293B',
+                                                                    background: cStyle.bg || (rIdx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'),
+                                                                    fontWeight: cStyle.bold ? 800 : 'normal',
+                                                                    fontStyle: cStyle.italic ? 'italic' : 'normal',
+                                                                    textAlign: cStyle.align || 'left',
+                                                                    fontSize: cStyle.fontSize || '0.6rem'
+                                                                }}
+                                                            >
+                                                                {row && row[cIdx] !== undefined ? String(row[cIdx]) : ''}
+                                                            </td>
+                                                        );
+                                                    })}
                                                 </tr>
                                             ))}
                                         </tbody>

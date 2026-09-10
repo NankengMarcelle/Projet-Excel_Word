@@ -2,6 +2,75 @@ import React, { useState } from 'react';
 import { UploadCloud, X, FileSpreadsheet, CheckCircle2, AlertCircle, Grid } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
+const parseColor = (colorObj) => {
+    if (!colorObj) return null;
+    if (typeof colorObj === 'string') return colorObj.startsWith('#') ? colorObj : `#${colorObj}`;
+    if (colorObj.rgb) {
+        let hex = colorObj.rgb;
+        if (hex.length === 8) hex = hex.substring(2);
+        return `#${hex}`;
+    }
+    return null;
+};
+
+const parseSheetStylesAndDimensions = (worksheet) => {
+    const cellStyles = {};
+    const colWidths = {};
+    const rowHeights = {};
+
+    if (worksheet['!cols'] && Array.isArray(worksheet['!cols'])) {
+        worksheet['!cols'].forEach((col, idx) => {
+            if (!col) return;
+            if (col.wpx) colWidths[idx] = col.wpx;
+            else if (col.width) colWidths[idx] = Math.round(col.width * 8);
+        });
+    }
+
+    if (worksheet['!rows'] && Array.isArray(worksheet['!rows'])) {
+        worksheet['!rows'].forEach((row, idx) => {
+            if (!row) return;
+            if (row.hpx) rowHeights[idx] = row.hpx;
+            else if (row.hpt) rowHeights[idx] = Math.round(row.hpt * 1.33);
+        });
+    }
+
+    const ref = worksheet['!ref'] || 'A1';
+    const range = XLSX.utils.decode_range(ref);
+    for (let R = range.s.r; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+            const cell = worksheet[cellAddress];
+            if (!cell || !cell.s) continue;
+
+            const styleObj = {};
+            const s = cell.s;
+
+            if (s.font) {
+                if (s.font.bold) styleObj.bold = true;
+                if (s.font.italic) styleObj.italic = true;
+                if (s.font.underline) styleObj.underline = true;
+                if (s.font.name) styleObj.fontFamily = s.font.name;
+                if (s.font.sz || s.font.size) styleObj.fontSize = `${s.font.sz || s.font.size}px`;
+                const fontColor = parseColor(s.font.color);
+                if (fontColor) styleObj.color = fontColor;
+            }
+
+            const bgColor = parseColor(s.fgColor || s.fill?.fgColor || s.fill?.bgColor);
+            if (bgColor && bgColor !== '#FFFFFF') styleObj.bg = bgColor;
+
+            if (s.alignment && s.alignment.horizontal) {
+                styleObj.align = s.alignment.horizontal;
+            }
+
+            if (Object.keys(styleObj).length > 0) {
+                cellStyles[`${R}_${C}`] = styleObj;
+            }
+        }
+    }
+
+    return { cellStyles, colWidths, rowHeights };
+};
+
 export default function FileUploader({ onClose, onUploadSuccess }) {
     const [dragOver, setDragOver] = useState(false);
     const [selectedFile, setSelectedFile] = useState(null);
@@ -34,14 +103,13 @@ export default function FileUploader({ onClose, onUploadSuccess }) {
         reader.onload = (evt) => {
             try {
                 const bstr = evt.target.result;
-                const wb = XLSX.read(bstr, { type: 'binary' });
+                const wb = XLSX.read(bstr, { type: 'binary', cellStyles: true, cellFormulas: true, cellDates: true, cellNF: true });
 
                 let totalMerges = 0;
                 const parsedSheets = wb.SheetNames.map((sheetName, idx) => {
                     const worksheet = wb.Sheets[sheetName];
                     const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
 
-                    // Extraire la liste des cellules fusionnées (!merges)
                     const rawMerges = worksheet['!merges'] || [];
                     totalMerges += rawMerges.length;
 
@@ -54,6 +122,8 @@ export default function FileUploader({ onClose, onUploadSuccess }) {
                         colSpan: m.e.c - m.s.c + 1
                     }));
 
+                    const { cellStyles, colWidths, rowHeights } = parseSheetStylesAndDimensions(worksheet);
+
                     return {
                         name: sheetName,
                         isParent: idx === 0,
@@ -62,7 +132,10 @@ export default function FileUploader({ onClose, onUploadSuccess }) {
                             ["PKI-2026-01", "Infrastructure Clés Publiques & Certificats", "145 000 000", "Conforme ANTIC"],
                             ["SEC-2026-04", "Audit de Sécurité des SI Ministériels", "88 500 000", "Conforme ANTIC"]
                         ],
-                        merges: merges
+                        merges,
+                        cellStyles,
+                        colWidths,
+                        rowHeights
                     };
                 });
 

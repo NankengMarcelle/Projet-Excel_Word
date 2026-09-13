@@ -1539,39 +1539,54 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         setActiveMenu(null);
     };
 
-    const handleCreateNewFile = () => {
-        if (window.confirm("Créer un nouveau fichier remplacera le classeur actif. Voulez-vous continuer ?")) {
-            const fileName = 'Nouveau_Classeur.xlsx';
+    const handleCreateNewFile = async () => {
+        let fileName = 'Nouveau_Classeur.xlsx';
 
-            // 1. Génération physique et téléchargement sur la machine de l'utilisateur
-            try {
-                const wb = XLSX.utils.book_new();
-                const emptyData = Array(50).fill(0).map(() => Array(26).fill(''));
-                const ws = XLSX.utils.aoa_to_sheet(emptyData);
-                XLSX.utils.book_append_sheet(wb, ws, "Feuille1");
+        // 1. Génération physique et téléchargement via la boîte de dialogue native du système (Save As)
+        try {
+            const wb = XLSX.utils.book_new();
+            const emptyData = Array(50).fill(0).map(() => Array(26).fill(''));
+            const ws = XLSX.utils.aoa_to_sheet(emptyData);
+            XLSX.utils.book_append_sheet(wb, ws, "Feuille1");
+
+            if (window.showSaveFilePicker) {
+                const handle = await window.showSaveFilePicker({
+                    suggestedName: fileName,
+                    types: [{
+                        description: 'Fichier Excel (.xlsx)',
+                        accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+                    }],
+                });
+                fileName = handle.name;
+                const writable = await handle.createWritable();
+                const arrayBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+                await writable.write(arrayBuffer);
+                await writable.close();
+            } else {
                 XLSX.writeFile(wb, fileName);
-            } catch (err) {
-                console.error("Erreur lors de la création du fichier .xlsx:", err);
             }
-
-            // 2. Réinitialisation de l'état de l'application
-            const newWb = {
-                id: `new_${Date.now()}`,
-                name: fileName,
-                sheets: [{ name: 'Feuille1', data: createEmptySheetData(100, 26) }]
-            };
-            setCurrentWorkbook(newWb);
-            setActiveSheetIndex(0);
-            setCellStyles({});
-            setCellFormulas({});
-            setColWidths({});
-            setRowHeights({});
-            setHiddenRows(EMPTY_SET);
-            setHiddenCols(EMPTY_SET);
-            if (onWorkbookChange) onWorkbookChange(newWb);
-            setStatusMessage("Nouveau fichier créé et téléchargé avec succès.");
-            setTimeout(() => setStatusMessage(''), 3000);
+        } catch (err) {
+            console.error("Erreur de création, ou annulation par l'utilisateur :", err);
+            return; // Annulé par l'utilisateur
         }
+
+        // 2. Réinitialisation de l'état de l'application
+        const newWb = {
+            id: `new_${Date.now()}`,
+            name: fileName,
+            sheets: [{ name: 'Feuille1', data: createEmptySheetData(100, 26) }]
+        };
+        setCurrentWorkbook(newWb);
+        setActiveSheetIndex(0);
+        setCellStyles({});
+        setCellFormulas({});
+        setColWidths({});
+        setRowHeights({});
+        setHiddenRows(EMPTY_SET);
+        setHiddenCols(EMPTY_SET);
+        if (onWorkbookChange) onWorkbookChange(newWb);
+        setStatusMessage(`Fichier ${fileName} créé avec succès.`);
+        setTimeout(() => setStatusMessage(''), 3000);
     };
 
     const updateSheetData = (newData) => {

@@ -252,15 +252,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 const sourceVal = newSheetData[sourceR] && newSheetData[sourceR][sourceC] !== undefined ? String(newSheetData[sourceR][sourceC]) : '';
                 const sourceStyle = cellStyles[`${sourceR}_${sourceC}`];
 
-                let newVal = sourceVal;
-                if (!isNaN(sourceVal) && sourceVal.trim() !== '') {
-                    const numVal = parseFloat(sourceVal);
-                    const step = 1;
-                    const rDiff = r > sourceMaxR ? Math.floor((r - sourceMaxR - 1) / height) + 1 : (r < sourceMinR ? -(Math.floor((sourceMinR - r - 1) / height) + 1) : 0);
-                    const cDiff = c > sourceMaxC ? Math.floor((c - sourceMaxC - 1) / width) + 1 : (c < sourceMinC ? -(Math.floor((sourceMinC - c - 1) / width) + 1) : 0);
-                    const delta = rDiff !== 0 ? rDiff : cDiff;
-                    newVal = String(numVal + delta * step);
-                }
+                const newVal = sourceVal;
 
                 if (!newSheetData[r]) newSheetData[r] = Array(26).fill('');
                 newSheetData[r][c] = newVal;

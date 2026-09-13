@@ -110,6 +110,46 @@ export default function App() {
     setActiveView('editor');
   };
 
+  const handleCreateNewWorkbook = async () => {
+    try {
+      let fileName = 'Nouveau_Classeur.xlsx';
+
+      if (window.showSaveFilePicker) {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{
+            description: 'Fichier Excel',
+            accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] },
+          }],
+        });
+        fileName = handle.name;
+
+        const XLSX = await import('xlsx');
+        const wb = XLSX.utils.book_new();
+        const ws = XLSX.utils.aoa_to_sheet([[""]]);
+        XLSX.utils.book_append_sheet(wb, ws, "Feuille1");
+
+        const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+        const writable = await handle.createWritable();
+        await writable.write(excelBuffer);
+        await writable.close();
+      }
+
+      const newWb = {
+        id: `new_${Date.now()}`,
+        name: fileName,
+        sheets: [{ name: 'Feuille1', data: Array.from({ length: 100 }, () => Array(26).fill('')) }]
+      };
+
+      setWorkbooks(prev => [newWb, ...prev]);
+      setSelectedWorkbook(newWb);
+      setActiveView('editor');
+      showToast(`Fichier ${fileName} créé de manière native avec succès !`, "success");
+    } catch (err) {
+      console.warn("Création de fichier annulée :", err);
+    }
+  };
+
   const handleOpenConvertModal = (wb = selectedWorkbook, sheetName = '') => {
     setConvertModal({
       isOpen: true,
@@ -239,6 +279,7 @@ export default function App() {
               onSelectWorkbook={handleSelectWorkbook}
               onOpenConvertModal={handleOpenConvertModal}
               onOpenUploadModal={() => setUploadModalOpen(true)}
+              onCreateNewWorkbook={handleCreateNewWorkbook}
               lang={lang}
             />
           )}

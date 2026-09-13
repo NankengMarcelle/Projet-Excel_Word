@@ -14,6 +14,7 @@ export default function DashboardView({
     onSelectWorkbook,
     onOpenConvertModal,
     onOpenUploadModal,
+    onCreateNewWorkbook,
     currentUser = { name: 'Pierre Marcelle Nankeng' },
     lang = 'fr'
 }) {
@@ -51,7 +52,7 @@ export default function DashboardView({
                 </div>
 
                 <button
-                    onClick={onOpenUploadModal}
+                    onClick={onCreateNewWorkbook || onOpenUploadModal}
                     style={{
                         background: 'linear-gradient(135deg, #02006c 0%, #1e3a8a 100%)',
                         color: '#FFFFFF',

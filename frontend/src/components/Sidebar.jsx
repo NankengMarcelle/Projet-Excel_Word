@@ -34,8 +34,8 @@ export default function Sidebar({ activeView, setActiveView, onOpenUploadModal, 
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            boxShadow: '4px 0 25px rgba(2, 0, 108, 0.25)',
-            zIndex: 100,
+            boxShadow: '2px 0 10px rgba(0, 0, 0, 0.1)',
+            zIndex: 40,
             overflow: 'hidden'
         }}>
 

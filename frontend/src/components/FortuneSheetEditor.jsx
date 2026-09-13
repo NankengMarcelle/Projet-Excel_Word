@@ -1644,7 +1644,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <button onClick={handleCreateNewFile} style={{ background: '#3B82F6', color: '#FFF', border: '1px solid #2563EB', borderRadius: '10px', padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)', transition: 'all 0.2s ease' }}>
+                    <button onClick={handleCreateNewFile} style={{ background: '#FFFFFF', color: '#02006c', border: 'none', borderRadius: '10px', padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)', transition: 'all 0.2s ease' }}>
                         <Plus size={14} /><span>Nouveau</span>
                     </button>
                     <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.2)', margin: '0 4px' }} />

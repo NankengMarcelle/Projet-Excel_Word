@@ -8,18 +8,22 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
     // Extract real sheet data dynamically from workbook prop
     const targetSheet = workbook?.sheets?.find(s => s.name === sheetName) || workbook?.sheets?.[0];
     const rawData = targetSheet?.data || [];
-
-    // Filter out completely empty rows for clean preview rendering
-    const nonEmptyRows = rawData.filter(row => row && row.some(cell => String(cell).trim() !== ''));
-
-    // Extract real header row (first non-empty row) and data rows
-    const headerRow = nonEmptyRows[0] || ['Colonne 1', 'Colonne 2', 'Colonne 3', 'Colonne 4'];
-    const bodyRows = nonEmptyRows.length > 1 ? nonEmptyRows.slice(1, 12) : [
-        ['Donnée Exemple A', '150 000 FCFA', '120 000 FCFA', 'Conforme'],
-        ['Donnée Exemple B', '300 000 FCFA', '290 000 FCFA', 'Validé']
-    ];
-
+    const cellStylesMap = targetSheet?.cellStyles || {};
+    const colWidths = targetSheet?.colWidths || {};
+    const rowHeights = targetSheet?.rowHeights || {};
     const merges = targetSheet?.merges || [];
+
+    // Calculate exact grid dimensions without stripping empty cells to preserve relative element placement
+    let maxRow = Math.max(rawData.length, 1);
+    let maxCol = 1;
+    rawData.forEach(row => {
+        if (row && row.length > maxCol) maxCol = row.length;
+    });
+
+    const gridRows = [];
+    for (let r = 0; r < maxRow; r++) {
+        gridRows.push(rawData[r] || []);
+    }
 
     const getMergeInfo = (r, c) => {
         if (!merges || merges.length === 0) return null;
@@ -40,17 +44,18 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
         const docTitle = workbook?.name ? workbook.name.replace(/\.[^/.]+$/, "").replace(/_/g, ' ') : "DOCUMENT DE SYNTHÈSE";
         const docFileName = `${docTitle.replace(/\s+/g, '_')}_Officiel.docx`;
 
-        const cellStylesMap = targetSheet?.cellStyles || {};
-
-        const headerHtml = headerRow.map(c => `<th style="background-color: #02006c; color: #FFFFFF; font-weight: bold; padding: 8px; border: 1px solid #02006c;">${String(c || '')}</th>`).join('');
-        const bodyHtml = bodyRows.map((row, rIdx) => {
-            const cellsHtml = headerRow.map((_, cIdx) => {
-                const info = getMergeInfo(rIdx + 1, cIdx);
+        const bodyHtml = gridRows.map((row, rIdx) => {
+            const rowH = rowHeights[rIdx] ? `${rowHeights[rIdx]}px` : '28px';
+            const cellsHtml = Array.from({ length: maxCol }).map((_, cIdx) => {
+                const info = getMergeInfo(rIdx, cIdx);
                 if (info?.isCovered) return '';
                 const spanAttrs = info?.isMaster ? `rowspan="${info.rowSpan}" colspan="${info.colSpan}"` : '';
 
-                const cStyle = cellStylesMap[`${rIdx + 1}_${cIdx}`] || {};
+                const colW = colWidths[cIdx] ? `${colWidths[cIdx]}px` : '100px';
+                const cStyle = cellStylesMap[`${rIdx}_${cIdx}`] || {};
                 const inlineStyles = [
+                    `width: ${colW}`,
+                    `height: ${rowH}`,
                     'padding: 6px 8px',
                     'border: 1px solid #CBD5E1',
                     cStyle.color ? `color: ${cStyle.color}` : '',
@@ -63,7 +68,7 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
 
                 return `<td ${spanAttrs} style="${inlineStyles}">${row && row[cIdx] !== undefined ? String(row[cIdx]) : ''}</td>`;
             }).join('');
-            return `<tr style="background-color: ${rIdx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'};">${cellsHtml}</tr>`;
+            return `<tr style="height: ${rowH};">${cellsHtml}</tr>`;
         }).join('');
 
         const htmlContent = `
@@ -309,44 +314,42 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
                                 {/* REAL DYNAMIC EXCEL TO WORD TABLE PREVIEW */}
                                 <div style={{ overflowX: 'auto', border: '1px solid #02006c', borderRadius: '4px' }}>
                                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.6rem' }}>
-                                        <thead>
-                                            <tr style={{ background: '#02006c', color: '#FFFFFF' }}>
-                                                {headerRow.map((col, cIdx) => (
-                                                    <th key={cIdx} style={{ padding: '5px 6px', border: '1px solid rgba(255,255,255,0.2)', textAlign: 'left', fontWeight: 800 }}>
-                                                        {String(col) || `Col ${cIdx + 1}`}
-                                                    </th>
-                                                ))}
-                                            </tr>
-                                        </thead>
                                         <tbody>
-                                            {bodyRows.map((row, rIdx) => (
-                                                <tr key={rIdx} style={{ background: rIdx % 2 === 0 ? '#FFFFFF' : '#F8FAFC' }}>
-                                                    {headerRow.map((_, cIdx) => {
-                                                        const info = getMergeInfo(rIdx + 1, cIdx);
-                                                        if (info?.isCovered) return null;
-                                                        const cStyle = targetSheet?.cellStyles?.[`${rIdx + 1}_${cIdx}`] || {};
-                                                        return (
-                                                            <td
-                                                                key={cIdx}
-                                                                rowSpan={info?.isMaster ? info.rowSpan : undefined}
-                                                                colSpan={info?.isMaster ? info.colSpan : undefined}
-                                                                style={{
-                                                                    padding: '4px 6px',
-                                                                    border: '1px solid #E2E8F0',
-                                                                    color: cStyle.color || '#1E293B',
-                                                                    background: cStyle.bg || (rIdx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'),
-                                                                    fontWeight: cStyle.bold ? 800 : 'normal',
-                                                                    fontStyle: cStyle.italic ? 'italic' : 'normal',
-                                                                    textAlign: cStyle.align || 'left',
-                                                                    fontSize: cStyle.fontSize || '0.6rem'
-                                                                }}
-                                                            >
-                                                                {row && row[cIdx] !== undefined ? String(row[cIdx]) : ''}
-                                                            </td>
-                                                        );
-                                                    })}
-                                                </tr>
-                                            ))}
+                                            {gridRows.map((row, rIdx) => {
+                                                const rowH = rowHeights[rIdx] ? `${rowHeights[rIdx]}px` : '24px';
+                                                return (
+                                                    <tr key={rIdx} style={{ height: rowH }}>
+                                                        {Array.from({ length: maxCol }).map((_, cIdx) => {
+                                                            const info = getMergeInfo(rIdx, cIdx);
+                                                            if (info?.isCovered) return null;
+                                                            const colW = colWidths[cIdx] ? `${colWidths[cIdx]}px` : '80px';
+                                                            const cStyle = cellStylesMap[`${rIdx}_${cIdx}`] || {};
+                                                            return (
+                                                                <td
+                                                                    key={cIdx}
+                                                                    rowSpan={info?.isMaster ? info.rowSpan : undefined}
+                                                                    colSpan={info?.isMaster ? info.colSpan : undefined}
+                                                                    style={{
+                                                                        padding: '4px 6px',
+                                                                        border: '1px solid #E2E8F0',
+                                                                        width: colW,
+                                                                        minWidth: colW,
+                                                                        height: rowH,
+                                                                        color: cStyle.color || '#1E293B',
+                                                                        background: cStyle.bg || (rIdx % 2 === 0 ? '#FFFFFF' : '#F8FAFC'),
+                                                                        fontWeight: cStyle.bold ? 800 : 'normal',
+                                                                        fontStyle: cStyle.italic ? 'italic' : 'normal',
+                                                                        textAlign: cStyle.align || 'left',
+                                                                        fontSize: cStyle.fontSize || '0.6rem'
+                                                                    }}
+                                                                >
+                                                                    {row && row[cIdx] !== undefined ? String(row[cIdx]) : ''}
+                                                                </td>
+                                                            );
+                                                        })}
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>

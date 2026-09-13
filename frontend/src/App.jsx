@@ -25,9 +25,42 @@ export default function App() {
   const [lang, setLang] = useState(() => {
     return localStorage.getItem('antic_lang') || 'fr';
   });
-  const [workbooks, setWorkbooks] = useState(sampleWorkbooks);
+  const [workbooks, setWorkbooks] = useState([]); // Removed sampleWorkbooks, default to empty
   const [conversions, setConversions] = useState(conversionHistory);
-  const [selectedWorkbook, setSelectedWorkbook] = useState(null);
+  const [selectedWorkbook, setSelectedWorkbook] = useState(() => {
+    try {
+      const isSessionActive = sessionStorage.getItem('antic_session_active') === 'true';
+      if (isSessionActive) {
+        const saved = localStorage.getItem('antic_active_workbook');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && Array.isArray(parsed.sheets) && parsed.sheets.length > 0 && Array.isArray(parsed.sheets[0]?.data)) {
+            return parsed;
+          }
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (selectedWorkbook) {
+      try {
+        sessionStorage.setItem('antic_session_active', 'true');
+        // Strip cellStyles from localStorage payload to avoid QuotaExceededError.
+        // cellStyles are re-extracted from the file on upload and kept in memory.
+        const lightWb = {
+          ...selectedWorkbook,
+          sheets: (selectedWorkbook.sheets || []).map(s => ({ ...s, cellStyles: {} }))
+        };
+        localStorage.setItem('antic_active_workbook', JSON.stringify(lightWb));
+      } catch (err) {
+        // Silently ignore quota errors
+      }
+    }
+  }, [selectedWorkbook]);
 
   // Top-Level Persistent User Photo State
   const [userPhoto, setUserPhoto] = useState(() => {
@@ -98,10 +131,18 @@ export default function App() {
   };
 
   const handleUploadSuccess = (newWorkbook) => {
-    setWorkbooks(prev => [newWorkbook, ...prev]);
-    setSelectedWorkbook(newWorkbook);
-    setActiveView('workbooks');
-    showToast(lang === 'fr' ? `Classeur "${newWorkbook.name}" importé avec succès !` : `Workbook "${newWorkbook.name}" uploaded successfully!`, "success");
+    const wbWithMeta = {
+      ...newWorkbook,
+      lastUpdated: new Date().toLocaleString(lang === 'fr' ? 'fr-FR' : 'en-US', { dateStyle: 'short', timeStyle: 'short' })
+    };
+    setWorkbooks(prev => [wbWithMeta, ...prev]);
+    setSelectedWorkbook(wbWithMeta);
+    try {
+      sessionStorage.setItem('antic_session_active', 'true');
+      localStorage.setItem('antic_active_workbook', JSON.stringify(wbWithMeta));
+    } catch (e) { }
+    setActiveView('editor');
+    showToast(lang === 'fr' ? `Classeur "${wbWithMeta.name}" importé avec succès !` : `Workbook "${wbWithMeta.name}" uploaded successfully!`, "success");
   };
 
   if (!isAuthenticated) {
@@ -164,6 +205,9 @@ export default function App() {
         setLang={setLang}
         onLogout={() => {
           localStorage.setItem('antic_auth', 'false');
+          localStorage.removeItem('antic_active_workbook');
+          sessionStorage.removeItem('antic_session_active');
+          setSelectedWorkbook(null);
           setIsAuthenticated(false);
           showToast("Déconnexion de la session agent effectuée.", "info");
         }}
@@ -202,8 +246,10 @@ export default function App() {
           {activeView === 'editor' && (
             <FortuneSheetEditor
               selectedWorkbook={selectedWorkbook}
+              onWorkbookChange={(wb) => setSelectedWorkbook(wb)}
               onOpenConvertModal={handleOpenConvertModal}
               onBackToDashboard={() => setActiveView('dashboard')}
+              onUploadSuccess={handleUploadSuccess}
               lang={lang}
             />
           )}

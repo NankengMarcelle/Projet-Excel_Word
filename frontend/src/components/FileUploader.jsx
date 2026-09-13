@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { UploadCloud, X, FileSpreadsheet, CheckCircle2, AlertCircle, Grid } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import { parseExcelFile } from '../utils/fortuneExcelParser';
 
 const parseColor = (colorObj) => {
     if (!colorObj) return null;
@@ -17,12 +17,16 @@ const parseSheetStylesAndDimensions = (worksheet) => {
     const cellStyles = {};
     const colWidths = {};
     const rowHeights = {};
+    const hiddenRows = [];
+    const hiddenCols = [];
 
     if (worksheet['!cols'] && Array.isArray(worksheet['!cols'])) {
         worksheet['!cols'].forEach((col, idx) => {
             if (!col) return;
             if (col.wpx) colWidths[idx] = col.wpx;
-            else if (col.width) colWidths[idx] = Math.round(col.width * 8);
+            else if (col.width) colWidths[idx] = Math.round(col.width * 7.5 + 5);
+            else if (col.wch) colWidths[idx] = Math.round(col.wch * 7.5 + 5);
+            if (col.hidden || col.h || col.wpx === 0 || col.width === 0) hiddenCols.push(idx);
         });
     }
 
@@ -31,6 +35,7 @@ const parseSheetStylesAndDimensions = (worksheet) => {
             if (!row) return;
             if (row.hpx) rowHeights[idx] = row.hpx;
             else if (row.hpt) rowHeights[idx] = Math.round(row.hpt * 1.33);
+            if (row.hidden || row.h || row.zeroHeight || row.hpx === 0 || row.hpt === 0) hiddenRows.push(idx);
         });
     }
 
@@ -58,8 +63,30 @@ const parseSheetStylesAndDimensions = (worksheet) => {
             const bgColor = parseColor(s.fgColor || s.fill?.fgColor || s.fill?.bgColor);
             if (bgColor && bgColor !== '#FFFFFF') styleObj.bg = bgColor;
 
-            if (s.alignment && s.alignment.horizontal) {
-                styleObj.align = s.alignment.horizontal;
+            if (s.alignment) {
+                let alignVal = s.alignment.horizontal;
+                if (alignVal) {
+                    const lower = String(alignVal).toLowerCase();
+                    if (lower.includes('center') || lower.includes('centre')) alignVal = 'center';
+                    else if (lower.includes('right')) alignVal = 'right';
+                    else if (lower.includes('justify')) alignVal = 'justify';
+                    else alignVal = 'left';
+                    styleObj.align = alignVal;
+                }
+                if (s.alignment.vertical) {
+                    const vLower = String(s.alignment.vertical).toLowerCase();
+                    if (vLower.includes('top')) styleObj.verticalAlign = 'top';
+                    else if (vLower.includes('center') || vLower.includes('middle')) styleObj.verticalAlign = 'middle';
+                    else if (vLower.includes('bottom')) styleObj.verticalAlign = 'bottom';
+                }
+                if (s.alignment.wrapText) styleObj.wrapText = true;
+            }
+
+            if (!styleObj.align && cell.v !== undefined && cell.v !== null && cell.v !== '') {
+                const strVal = String(cell.v).trim();
+                if (!isNaN(strVal) || /^\d+(\.\d+)?%?$/.test(strVal) || /^\d[\d\s]*\s?FCFA$/i.test(strVal)) {
+                    styleObj.align = 'right';
+                }
             }
 
             if (Object.keys(styleObj).length > 0) {
@@ -68,7 +95,7 @@ const parseSheetStylesAndDimensions = (worksheet) => {
         }
     }
 
-    return { cellStyles, colWidths, rowHeights };
+    return { cellStyles, colWidths, rowHeights, hiddenRows, hiddenCols };
 };
 
 export default function FileUploader({ onClose, onUploadSuccess }) {
@@ -95,73 +122,38 @@ export default function FileUploader({ onClose, onUploadSuccess }) {
         }
     };
 
-    const handleSubmitUpload = () => {
+    const handleSubmitUpload = async () => {
         if (!selectedFile) return;
         setIsUploading(true);
 
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            try {
-                const bstr = evt.target.result;
-                const wb = XLSX.read(bstr, { type: 'binary', cellStyles: true, cellFormulas: true, cellDates: true, cellNF: true });
+        try {
+            const parsedWb = await parseExcelFile(selectedFile);
+            const parsedSheets = parsedWb.sheets || [];
+            let totalMerges = 0;
+            parsedSheets.forEach(s => {
+                totalMerges += (s.merges?.length || 0);
+            });
 
-                let totalMerges = 0;
-                const parsedSheets = wb.SheetNames.map((sheetName, idx) => {
-                    const worksheet = wb.Sheets[sheetName];
-                    const rawData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-
-                    const rawMerges = worksheet['!merges'] || [];
-                    totalMerges += rawMerges.length;
-
-                    const merges = rawMerges.map(m => ({
-                        startRow: m.s.r,
-                        startCol: m.s.c,
-                        endRow: m.e.r,
-                        endCol: m.e.c,
-                        rowSpan: m.e.r - m.s.r + 1,
-                        colSpan: m.e.c - m.s.c + 1
-                    }));
-
-                    const { cellStyles, colWidths, rowHeights } = parseSheetStylesAndDimensions(worksheet);
-
-                    return {
-                        name: sheetName,
-                        isParent: idx === 0,
-                        data: rawData.length > 0 ? rawData : [
-                            ["Code Projet", "Désignation SI", "Budget Prévu (FCFA)", "Statut ANTIC"],
-                            ["PKI-2026-01", "Infrastructure Clés Publiques & Certificats", "145 000 000", "Conforme ANTIC"],
-                            ["SEC-2026-04", "Audit de Sécurité des SI Ministériels", "88 500 000", "Conforme ANTIC"]
-                        ],
-                        merges,
-                        cellStyles,
-                        colWidths,
-                        rowHeights
-                    };
+            setIsUploading(false);
+            if (onUploadSuccess) {
+                onUploadSuccess({
+                    id: `wb-${Date.now()}`,
+                    name: selectedFile.name,
+                    size: `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`,
+                    lastModified: new Date().toLocaleDateString('fr-FR'),
+                    updatedAt: new Date().toLocaleString(),
+                    sheetsCount: parsedSheets.length,
+                    parentSheet: parsedSheets[0]?.name || "Feuille1",
+                    status: totalMerges > 0 ? `Fusionné (${totalMerges} cellules)` : "Conforme",
+                    sheets: parsedSheets
                 });
-
-                setIsUploading(false);
-                if (onUploadSuccess) {
-                    onUploadSuccess({
-                        id: `wb-${Date.now()}`,
-                        name: selectedFile.name,
-                        size: `${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB`,
-                        lastModified: new Date().toLocaleDateString('fr-FR'),
-                        updatedAt: new Date().toLocaleString(),
-                        sheetsCount: parsedSheets.length,
-                        parentSheet: parsedSheets[0]?.name || "Feuille1",
-                        status: totalMerges > 0 ? `Fusionné (${totalMerges} cellules)` : "Conforme",
-                        sheets: parsedSheets
-                    });
-                }
-                onClose();
-            } catch (err) {
-                console.error("Erreur lors de la lecture du fichier Excel :", err);
-                setIsUploading(false);
-                alert("Erreur lors de la lecture du fichier Excel. Le fichier a été importé avec un modèle par défaut.");
             }
-        };
-
-        reader.readAsBinaryString(selectedFile);
+            onClose();
+        } catch (err) {
+            console.error("Erreur lors de la lecture du fichier Excel :", err);
+            setIsUploading(false);
+            alert("Erreur lors de la lecture du fichier Excel.");
+        }
     };
 
     return (

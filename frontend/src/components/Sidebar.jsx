@@ -19,7 +19,6 @@ export default function Sidebar({ activeView, setActiveView, onOpenUploadModal, 
         { id: 'workbooks', label: lang === 'fr' ? 'Fichiers Excel & Propriétés' : 'Excel Files', icon: FolderOpen },
         { id: 'word_files', label: lang === 'fr' ? 'Fichiers Word (Convertis)' : 'Word Documents', icon: FileText },
         { id: 'notifications', label: lang === 'fr' ? 'Notifications' : 'Notifications', icon: Bell, badge: 3 },
-        { id: 'collaboration', label: lang === 'fr' ? 'Collaboration' : 'Collaboration', icon: Users },
         { id: 'profile', label: lang === 'fr' ? 'Mon Profil Agent' : 'My Profile', icon: UserCheck }
     ];
 

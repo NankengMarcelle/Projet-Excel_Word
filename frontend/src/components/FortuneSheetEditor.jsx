@@ -1,5 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
-import * as XLSX from 'xlsx';
+import XLSX from 'xlsx-js-style';
+
+const EMPTY_OBJ = {};
+const EMPTY_SET = new Set();
+import { parseExcelFile } from '../utils/fortuneExcelParser';
 import {
     FileSpreadsheet,
     FileText,
@@ -29,7 +33,10 @@ import {
     RefreshCw,
     Layers,
     Save,
-    Grid
+    Grid,
+    CheckCircle2,
+    Undo2,
+    Redo2
 } from 'lucide-react';
 import WordDocumentPreviewModal from './WordDocumentPreviewModal';
 import ColorPickerPopover from './ColorPickerPopover';
@@ -116,7 +123,7 @@ const ALL_FONTS = [
 
 const PRESET_FONT_SIZES = [8, 9, 10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24, 28, 32, 36, 40, 48, 56, 72];
 
-export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModal, onBackToDashboard }) {
+export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange, onOpenConvertModal, onBackToDashboard, onUploadSuccess, lang = 'fr' }) {
     const fileInputRef = useRef(null);
     const inlineInputRef = useRef(null);
 
@@ -134,20 +141,64 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
 
     const [currentWorkbook, setCurrentWorkbook] = useState(() => {
         if (selectedWorkbook) return selectedWorkbook;
+        try {
+            const saved = localStorage.getItem('antic_active_workbook');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (parsed && Array.isArray(parsed.sheets) && parsed.sheets.length > 0) {
+                    return parsed;
+                }
+            }
+        } catch (e) { }
         return {
             name: 'Nouveau_Classeur_Sans_Titre.xlsx',
-            sheets: [{ name: 'Feuille1', data: createEmptySheetData(50, 26) }]
+            sheets: [{ name: 'Feuille1', data: createEmptySheetData(100, 26) }]
         };
     });
 
+    const initRef = useRef(null);
+    const emittedWbsRef = useRef(new WeakSet());
+
     useEffect(() => {
         if (selectedWorkbook) {
+            // Absolute defense against parent property echoes
+            if (emittedWbsRef.current.has(selectedWorkbook)) return;
+
+            const currentWbId = selectedWorkbook.id || selectedWorkbook.name || 'loaded';
+            if (initRef.current === currentWbId) return;
+            initRef.current = currentWbId;
+
+            const activeSheet = selectedWorkbook.sheets?.[0];
+            if (activeSheet) {
+                setCellStyles(activeSheet.cellStyles || EMPTY_OBJ);
+                setColWidths(activeSheet.colWidths || EMPTY_OBJ);
+                setRowHeights(activeSheet.rowHeights || EMPTY_OBJ);
+                const safeHiddenRows = Array.isArray(activeSheet.hiddenRows) ? activeSheet.hiddenRows : (activeSheet.hiddenRows instanceof Set ? Array.from(activeSheet.hiddenRows) : []);
+                setHiddenRows(safeHiddenRows.length > 0 ? new Set(safeHiddenRows) : EMPTY_SET);
+                const safeHiddenCols = Array.isArray(activeSheet.hiddenCols) ? activeSheet.hiddenCols : (activeSheet.hiddenCols instanceof Set ? Array.from(activeSheet.hiddenCols) : []);
+                setHiddenCols(safeHiddenCols.length > 0 ? new Set(safeHiddenCols) : EMPTY_SET);
+            }
             setCurrentWorkbook(selectedWorkbook);
+            setActiveSheetIndex(0);
         } else {
-            setCurrentWorkbook({
-                name: 'Nouveau_Classeur_Sans_Titre.xlsx',
-                sheets: [{ name: 'Feuille1', data: createEmptySheetData(50, 26) }]
-            });
+            try {
+                const saved = localStorage.getItem('antic_active_workbook');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (parsed && Array.isArray(parsed.sheets) && parsed.sheets.length > 0) {
+                        const activeSheet = parsed.sheets[0];
+                        if (activeSheet) {
+                            setCellStyles(activeSheet.cellStyles || EMPTY_OBJ);
+                            setColWidths(activeSheet.colWidths || EMPTY_OBJ);
+                            setRowHeights(activeSheet.rowHeights || EMPTY_OBJ);
+                            setHiddenRows(activeSheet.hiddenRows?.length > 0 ? new Set(activeSheet.hiddenRows) : EMPTY_SET);
+                            setHiddenCols(activeSheet.hiddenCols?.length > 0 ? new Set(activeSheet.hiddenCols) : EMPTY_SET);
+                        }
+                        setCurrentWorkbook(parsed);
+                        setActiveSheetIndex(0);
+                    }
+                }
+            } catch (e) { }
         }
     }, [selectedWorkbook]);
 
@@ -159,6 +210,8 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
         end: { r: 0, c: 0 }
     });
     const [isMouseDown, setIsMouseDown] = useState(false);
+    const [isFillDragging, setIsFillDragging] = useState(false);
+    const [fillTarget, setFillTarget] = useState(null);
 
     // Per-Cell Styles Map: { [`${r}_${c}`]: { bold, italic, underline, color, bg, fontFamily, fontSize, align } }
     const [cellStyles, setCellStyles] = useState({});
@@ -167,18 +220,228 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
     const [rowHeights, setRowHeights] = useState({});
     const [colWidths, setColWidths] = useState({});
 
+    const executeFillHandle = (targetCell) => {
+        if (!targetCell) return;
+        const targetR = targetCell.r;
+        const targetC = targetCell.c;
+
+        const sourceMinR = Math.min(selectionRange.start.r, selectionRange.end.r);
+        const sourceMaxR = Math.max(selectionRange.start.r, selectionRange.end.r);
+        const sourceMinC = Math.min(selectionRange.start.c, selectionRange.end.c);
+        const sourceMaxC = Math.max(selectionRange.start.c, selectionRange.end.c);
+
+        const height = sourceMaxR - sourceMinR + 1;
+        const width = sourceMaxC - sourceMinC + 1;
+
+        const fillMinR = Math.min(sourceMinR, targetR);
+        const fillMaxR = Math.max(sourceMaxR, targetR);
+        const fillMinC = Math.min(sourceMinC, targetC);
+        const fillMaxC = Math.max(sourceMaxC, targetC);
+
+        const activeSheetData = currentWorkbook?.sheets?.[activeSheetIndex]?.data || [];
+        const newSheetData = activeSheetData.map(r => [...r]);
+        const newCellStyles = { ...cellStyles };
+
+        for (let r = fillMinR; r <= fillMaxR; r++) {
+            for (let c = fillMinC; c <= fillMaxC; c++) {
+                if (r >= sourceMinR && r <= sourceMaxR && c >= sourceMinC && c <= sourceMaxC) continue;
+
+                const sourceR = sourceMinR + ((r - sourceMinR) % height + height) % height;
+                const sourceC = sourceMinC + ((c - sourceMinC) % width + width) % width;
+
+                const sourceVal = newSheetData[sourceR] && newSheetData[sourceR][sourceC] !== undefined ? String(newSheetData[sourceR][sourceC]) : '';
+                const sourceStyle = cellStyles[`${sourceR}_${sourceC}`];
+
+                let newVal = sourceVal;
+                if (!isNaN(sourceVal) && sourceVal.trim() !== '') {
+                    const numVal = parseFloat(sourceVal);
+                    const step = 1;
+                    const rDiff = r > sourceMaxR ? Math.floor((r - sourceMaxR - 1) / height) + 1 : (r < sourceMinR ? -(Math.floor((sourceMinR - r - 1) / height) + 1) : 0);
+                    const cDiff = c > sourceMaxC ? Math.floor((c - sourceMaxC - 1) / width) + 1 : (c < sourceMinC ? -(Math.floor((sourceMinC - c - 1) / width) + 1) : 0);
+                    const delta = rDiff !== 0 ? rDiff : cDiff;
+                    newVal = String(numVal + delta * step);
+                }
+
+                if (!newSheetData[r]) newSheetData[r] = Array(26).fill('');
+                newSheetData[r][c] = newVal;
+
+                if (sourceStyle) {
+                    newCellStyles[`${r}_${c}`] = { ...sourceStyle };
+                } else {
+                    delete newCellStyles[`${r}_${c}`];
+                }
+            }
+        }
+
+        setCellStyles(newCellStyles);
+        const updatedSheets = (currentWorkbook?.sheets || []).map((s, i) => {
+            if (i === activeSheetIndex) {
+                return { ...s, data: newSheetData, cellStyles: newCellStyles };
+            }
+            return s;
+        });
+        setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
+        setStatusMessage(`Cellules étirées et remplies avec succès.`);
+        setTimeout(() => setStatusMessage(''), 3000);
+    };
+
+    useEffect(() => {
+        const handleMouseUp = () => {
+            setIsMouseDown(false);
+            if (isFillDragging && fillTarget) {
+                executeFillHandle(fillTarget);
+                setIsFillDragging(false);
+                setFillTarget(null);
+            }
+        };
+        window.addEventListener('mouseup', handleMouseUp);
+        return () => window.removeEventListener('mouseup', handleMouseUp);
+    }, [isFillDragging, fillTarget, selectionRange, cellStyles, currentWorkbook, activeSheetIndex]);
+
+
     useEffect(() => {
         const sheets = currentWorkbook?.sheets || [];
         const activeSheet = sheets[activeSheetIndex] || sheets[0];
         if (activeSheet) {
-            setCellStyles(activeSheet.cellStyles || {});
-            setColWidths(activeSheet.colWidths || {});
-            setRowHeights(activeSheet.rowHeights || {});
-        }
-    }, [currentWorkbook, activeSheetIndex]);
+            setCellStyles(activeSheet.cellStyles || EMPTY_OBJ);
+            setColWidths(activeSheet.colWidths || EMPTY_OBJ);
+            setRowHeights(activeSheet.rowHeights || EMPTY_OBJ);
 
-    const [hiddenRows, setHiddenRows] = useState(new Set());
-    const [hiddenCols, setHiddenCols] = useState(new Set());
+            const rawHiddenRows = activeSheet.hiddenRows;
+            const safeHiddenRows = Array.isArray(rawHiddenRows) ? rawHiddenRows : (rawHiddenRows instanceof Set ? Array.from(rawHiddenRows) : []);
+            setHiddenRows(safeHiddenRows.length > 0 ? new Set(safeHiddenRows) : EMPTY_SET);
+
+            const rawHiddenCols = activeSheet.hiddenCols;
+            const safeHiddenCols = Array.isArray(rawHiddenCols) ? rawHiddenCols : (rawHiddenCols instanceof Set ? Array.from(rawHiddenCols) : []);
+            setHiddenCols(safeHiddenCols.length > 0 ? new Set(safeHiddenCols) : EMPTY_SET);
+        }
+    }, [activeSheetIndex]); // Only update styles when switching sheets, NOT on every keystroke
+
+    const [lastAutoSaveTime, setLastAutoSaveTime] = useState('');
+
+    useEffect(() => {
+        if (currentWorkbook) {
+            // Always call onWorkbookChange with full in-memory data (including cellStyles)
+            const serializableSheets = (currentWorkbook.sheets || []).map((s, i) => {
+                const isCurrent = i === activeSheetIndex;
+                return {
+                    ...s,
+                    colWidths: isCurrent ? colWidths : (s.colWidths || {}),
+                    rowHeights: isCurrent ? rowHeights : (s.rowHeights || {}),
+                    cellStyles: isCurrent ? cellStyles : (s.cellStyles || {}),
+                    hiddenRows: Array.isArray(s.hiddenRows) ? s.hiddenRows : (s.hiddenRows instanceof Set ? Array.from(s.hiddenRows) : []),
+                    hiddenCols: Array.isArray(s.hiddenCols) ? s.hiddenCols : (s.hiddenCols instanceof Set ? Array.from(s.hiddenCols) : [])
+                };
+            });
+            const serializableWb = { ...currentWorkbook, sheets: serializableSheets };
+            emittedWbsRef.current.add(serializableWb); // Register as an intentional emission
+            if (onWorkbookChange) onWorkbookChange(serializableWb);
+
+            // Save to localStorage WITHOUT cellStyles (too large — causes QuotaExceededError).
+            // cellStyles are re-extracted from the file on each upload, so they don't need persistence.
+            try {
+                const lightSheets = serializableSheets.map(s => ({
+                    ...s,
+                    cellStyles: {}  // strip styles from localStorage payload
+                }));
+                const lightWb = { ...currentWorkbook, sheets: lightSheets };
+                localStorage.setItem('antic_active_workbook', JSON.stringify(lightWb));
+                const now = new Date();
+                setLastAutoSaveTime(now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+            } catch (err) {
+                // Silently ignore quota errors — cellStyles intentionally excluded but file may still exceed quota
+            }
+        }
+    }, [currentWorkbook, colWidths, rowHeights, cellStyles, activeSheetIndex]);
+
+    // Undo / Redo History Stack
+    const [historyStack, setHistoryStack] = useState([]);
+    const [futureStack, setFutureStack] = useState([]);
+
+    const pushHistory = (wbState = currentWorkbook) => {
+        if (!wbState) return;
+        const stateToSave = JSON.parse(JSON.stringify(wbState));
+        if (stateToSave.sheets && stateToSave.sheets[activeSheetIndex]) {
+            stateToSave.sheets[activeSheetIndex].cellStyles = cellStyles;
+            stateToSave.sheets[activeSheetIndex].colWidths = colWidths;
+            stateToSave.sheets[activeSheetIndex].rowHeights = rowHeights;
+        }
+        setHistoryStack(prev => [...prev.slice(-30), stateToSave]);
+        setFutureStack([]);
+    };
+
+    const handleUndo = () => {
+        if (historyStack.length === 0) return;
+        const previousState = historyStack[historyStack.length - 1];
+        setFutureStack(prev => [...prev, JSON.parse(JSON.stringify(currentWorkbook))]);
+        setHistoryStack(prev => prev.slice(0, prev.length - 1));
+        setCurrentWorkbook(previousState);
+        setStatusMessage("Modification annulée");
+        setTimeout(() => setStatusMessage(''), 2000);
+    };
+
+    const handleRedo = () => {
+        if (futureStack.length === 0) return;
+        const nextState = futureStack[futureStack.length - 1];
+        setHistoryStack(prev => [...prev, JSON.parse(JSON.stringify(currentWorkbook))]);
+        setFutureStack(prev => prev.slice(0, prev.length - 1));
+        setCurrentWorkbook(nextState);
+        setStatusMessage("Modification rétablie");
+        setTimeout(() => setStatusMessage(''), 2000);
+    };
+
+    // Column & Row Interactive Drag-Resizing State
+    const [resizingCol, setResizingCol] = useState(null); // { cIdx, startX, startWidth }
+    const [resizingRow, setResizingRow] = useState(null); // { rIdx, startY, startHeight }
+
+    const handleColResizeStart = (e, cIdx) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const startWidth = colWidths[cIdx] || 100;
+        setResizingCol({ cIdx, startX: e.clientX, startWidth });
+    };
+
+    const handleRowResizeStart = (e, rIdx) => {
+        e.stopPropagation();
+        e.preventDefault();
+        const startHeight = rowHeights[rIdx] || 28;
+        setResizingRow({ rIdx, startY: e.clientY, startHeight });
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (e) => {
+            if (resizingCol) {
+                const diff = e.clientX - resizingCol.startX;
+                const newW = Math.max(40, resizingCol.startWidth + diff);
+                setColWidths(prev => ({ ...prev, [resizingCol.cIdx]: newW }));
+            }
+            if (resizingRow) {
+                const diff = e.clientY - resizingRow.startY;
+                const newH = Math.max(20, resizingRow.startHeight + diff);
+                setRowHeights(prev => ({ ...prev, [resizingRow.rIdx]: newH }));
+            }
+        };
+
+        const handleMouseUp = () => {
+            if (resizingCol || resizingRow) {
+                pushHistory();
+                setResizingCol(null);
+                setResizingRow(null);
+            }
+        };
+
+        if (resizingCol || resizingRow) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+        }
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [resizingCol, resizingRow]);
+
+    const [hiddenRows, setHiddenRows] = useState(EMPTY_SET);
+    const [hiddenCols, setHiddenCols] = useState(EMPTY_SET);
     const [frozenRow, setFrozenRow] = useState(false);
     const [frozenCol, setFrozenCol] = useState(false);
 
@@ -402,11 +665,33 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
 
     // Helper: Determine if cell is master, covered, or unmerged
     const getMergeInfo = (r, c, merges = []) => {
-        if (!merges || merges.length === 0) return null;
-        for (const m of merges) {
-            if (r >= m.startRow && r <= m.endRow && c >= m.startCol && c <= m.endCol) {
-                if (r === m.startRow && c === m.startCol) {
-                    return { isMaster: true, rowSpan: m.rowSpan, colSpan: m.colSpan };
+        if (!merges || !Array.isArray(merges) || merges.length === 0) return null;
+        for (const rawM of merges) {
+            if (!rawM) continue;
+            const startRow = rawM.startRow !== undefined ? rawM.startRow : rawM.s?.r;
+            const endRow = rawM.endRow !== undefined ? rawM.endRow : rawM.e?.r;
+            const startCol = rawM.startCol !== undefined ? rawM.startCol : rawM.s?.c;
+            const endCol = rawM.endCol !== undefined ? rawM.endCol : rawM.e?.c;
+
+            if (startRow === undefined || endRow === undefined || startCol === undefined || endCol === undefined) continue;
+
+            if (r >= startRow && r <= endRow && c >= startCol && c <= endCol) {
+                if (r === startRow && c === startCol) {
+                    let actualRowSpan = 0;
+                    for (let i = startRow; i <= endRow; i++) {
+                        if (!currentSheet.hiddenRows?.includes(i)) actualRowSpan++;
+                    }
+                    let actualColSpan = 0;
+                    for (let i = startCol; i <= endCol; i++) {
+                        if (!currentSheet.hiddenCols?.includes(i)) actualColSpan++;
+                    }
+                    return {
+                        isMaster: true,
+                        rowSpan: actualRowSpan || 1, // Fallback to 1 if fully hidden (should not render anyway)
+                        colSpan: actualColSpan || 1,
+                        realRowSpan: endRow - startRow + 1, // Store original for unmerge logic
+                        realColSpan: endCol - startCol + 1
+                    };
                 }
                 return { isCovered: true };
             }
@@ -414,24 +699,40 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
         return null;
     };
 
-    // Action: Merge or Unmerge selected range
-    const handleToggleMergeSelection = () => {
+    // Action: Merge & Center or Unmerge selected range
+    const handleToggleMergeSelection = (forceUnmerge = false) => {
+        pushHistory(); // Capture precise state BEFORE the merge action
         const currentMerges = currentSheet.merges || [];
         const isMultiCell = minR !== maxR || minC !== maxC;
-        if (!isMultiCell) {
-            // Check if active single cell is in an existing merge -> unmerge it
-            const existingIdx = currentMerges.findIndex(m => minR >= m.startRow && minR <= m.endRow && minC >= m.startCol && minC <= m.endCol);
+
+        // Check if current selection overlaps an existing merge range
+        const existingIdx = currentMerges.findIndex(rawM => {
+            const sR = rawM.startRow !== undefined ? rawM.startRow : rawM.s?.r;
+            const eR = rawM.endRow !== undefined ? rawM.endRow : rawM.e?.r;
+            const sC = rawM.startCol !== undefined ? rawM.startCol : rawM.s?.c;
+            const eC = rawM.endCol !== undefined ? rawM.endCol : rawM.e?.c;
+            if (sR === undefined) return false;
+            return minR >= sR && maxR <= eR && minC >= sC && maxC <= eC;
+        });
+
+        if (existingIdx !== -1 || forceUnmerge) {
             if (existingIdx !== -1) {
                 const updatedMerges = currentMerges.filter((_, idx) => idx !== existingIdx);
                 const updatedSheets = [...sheets];
                 updatedSheets[activeSheetIndex] = { ...currentSheet, merges: updatedMerges };
                 setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
-                setStatusMessage("Cellules défusionnées.");
+                setStatusMessage("Cellules défusionnées avec succès.");
                 setTimeout(() => setStatusMessage(''), 3000);
             } else {
-                setStatusMessage("Veuillez sélectionner plusieurs cellules pour les fusionner.");
+                setStatusMessage("Aucune cellule fusionnée à cet emplacement.");
                 setTimeout(() => setStatusMessage(''), 3000);
             }
+            return;
+        }
+
+        if (!isMultiCell) {
+            setStatusMessage("Veuillez sélectionner plusieurs cellules pour les fusionner.");
+            setTimeout(() => setStatusMessage(''), 3000);
             return;
         }
 
@@ -445,17 +746,33 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
             colSpan: maxC - minC + 1
         };
 
-        // Filter out overlapping merges
-        const filteredMerges = currentMerges.filter(m => !(m.startRow >= minR && m.endRow <= maxR && m.startCol >= minC && m.endCol <= maxC));
+        const filteredMerges = currentMerges.filter(rawM => {
+            const sR = rawM.startRow !== undefined ? rawM.startRow : rawM.s?.r;
+            const eR = rawM.endRow !== undefined ? rawM.endRow : rawM.e?.r;
+            const sC = rawM.startCol !== undefined ? rawM.startCol : rawM.s?.c;
+            const eC = rawM.endCol !== undefined ? rawM.endCol : rawM.e?.c;
+            if (sR === undefined) return true;
+            return !(sR >= minR && eR <= maxR && sC >= minC && eC <= maxC);
+        });
+
         const updatedMerges = [...filteredMerges, newMerge];
         const updatedSheets = [...sheets];
         updatedSheets[activeSheetIndex] = { ...currentSheet, merges: updatedMerges };
-        setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
-        setStatusMessage(`Cellules ${getColLabel(minC)}${minR + 1}:${getColLabel(maxC)}${maxR + 1} fusionnées (${newMerge.rowSpan}x${newMerge.colSpan}).`);
+
+        const nextWorkbook = { ...currentWorkbook, sheets: updatedSheets };
+        setCurrentWorkbook(nextWorkbook);
+
+        // this will also save but we have our latest merges saved. Pass true to skip pushing history again
+        applyStyleToSelectedRange({ align: 'center' }, true);
+
+        setStatusMessage(`Cellules ${getColLabel(minC)}${minR + 1}:${getColLabel(maxC)}${maxR + 1} fusionnées.`);
         setTimeout(() => setStatusMessage(''), 3000);
     };
-
-    const applyStyleToSelectedRange = (stylePatch) => {
+    const applyStyleToSelectedRange = (stylePatch, skipHistory = false) => {
+        if (!skipHistory) {
+            pushHistory(); // Save the state before style modification
+        }
+        let finalStyles = null;
         setCellStyles(prev => {
             const next = { ...prev };
             for (let r = minR; r <= maxR; r++) {
@@ -467,8 +784,17 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
                     };
                 }
             }
+            finalStyles = next;
             return next;
         });
+
+        // Sync styles immediately to currentWorkbook so they persist on tab switch, undo, or data edit
+        if (finalStyles) {
+            const updatedSheets = [...sheets];
+            updatedSheets[activeSheetIndex] = { ...currentSheet, cellStyles: finalStyles };
+            const nextWorkbook = { ...currentWorkbook, sheets: updatedSheets };
+            setCurrentWorkbook(nextWorkbook);
+        }
     };
 
     const toggleBold = () => {
@@ -503,6 +829,41 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
     };
 
     const applyAlign = (align) => applyStyleToSelectedRange({ align });
+    const applyVerticalAlign = (verticalAlign) => applyStyleToSelectedRange({ verticalAlign });
+    const toggleWrapText = () => {
+        const isCurrentWrap = cellStyles[`${minR}_${minC}`]?.wrapText;
+        applyStyleToSelectedRange({ wrapText: !isCurrentWrap });
+    };
+
+    const applyBorders = (borderType) => {
+        setCellStyles(prev => {
+            const next = { ...prev };
+            for (let r = minR; r <= maxR; r++) {
+                for (let c = minC; c <= maxC; c++) {
+                    const key = `${r}_${c}`;
+                    if (borderType === 'none') {
+                        const styleCopy = { ...next[key] };
+                        delete styleCopy.border;
+                        delete styleCopy.borderTop;
+                        delete styleCopy.borderBottom;
+                        delete styleCopy.borderLeft;
+                        delete styleCopy.borderRight;
+                        next[key] = styleCopy;
+                    } else if (borderType === 'all') {
+                        next[key] = {
+                            ...next[key],
+                            border: '1px solid #000000',
+                            borderTop: '1px solid #000000',
+                            borderBottom: '1px solid #000000',
+                            borderLeft: '1px solid #000000',
+                            borderRight: '1px solid #000000'
+                        };
+                    }
+                }
+            }
+            return next;
+        });
+    };
 
     const applyFontFamily = (font) => {
         setFontFamily(font);
@@ -530,11 +891,16 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
         const colWidths = {};
         const rowHeights = {};
 
+        const hiddenRows = [];
+        const hiddenCols = [];
+
         if (worksheet['!cols'] && Array.isArray(worksheet['!cols'])) {
             worksheet['!cols'].forEach((col, idx) => {
                 if (!col) return;
                 if (col.wpx) colWidths[idx] = col.wpx;
-                else if (col.width) colWidths[idx] = Math.round(col.width * 8);
+                else if (col.width) colWidths[idx] = Math.round(col.width * 7.5 + 5);
+                else if (col.wch) colWidths[idx] = Math.round(col.wch * 7.5 + 5);
+                if (col.hidden || col.h || col.wpx === 0 || col.width === 0) hiddenCols.push(idx);
             });
         }
 
@@ -543,6 +909,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
                 if (!row) return;
                 if (row.hpx) rowHeights[idx] = row.hpx;
                 else if (row.hpt) rowHeights[idx] = Math.round(row.hpt * 1.33);
+                if (row.hidden || row.h || row.zeroHeight || row.hpx === 0 || row.hpt === 0) hiddenRows.push(idx);
             });
         }
 
@@ -570,8 +937,29 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
                 const bgColor = parseColor(s.fgColor || s.fill?.fgColor || s.fill?.bgColor);
                 if (bgColor && bgColor !== '#FFFFFF') styleObj.bg = bgColor;
 
-                if (s.alignment && s.alignment.horizontal) {
-                    styleObj.align = s.alignment.horizontal;
+                if (s.alignment) {
+                    let alignVal = s.alignment.horizontal;
+                    if (alignVal) {
+                        const lower = String(alignVal).toLowerCase();
+                        if (lower.includes('center') || lower.includes('centre')) alignVal = 'center';
+                        else if (lower.includes('right')) alignVal = 'right';
+                        else if (lower.includes('justify')) alignVal = 'justify';
+                        else alignVal = 'left';
+                        styleObj.align = alignVal;
+                    }
+                    if (s.alignment.vertical) {
+                        const vLower = String(s.alignment.vertical).toLowerCase();
+                        if (vLower.includes('top')) styleObj.verticalAlign = 'top';
+                        else if (vLower.includes('center') || vLower.includes('middle')) styleObj.verticalAlign = 'middle';
+                        else if (vLower.includes('bottom')) styleObj.verticalAlign = 'bottom';
+                    }
+                }
+
+                if (!styleObj.align && cell.v !== undefined && cell.v !== null && cell.v !== '') {
+                    const strVal = String(cell.v).trim();
+                    if (!isNaN(strVal) || /^\d+(\.\d+)?%?$/.test(strVal) || /^\d[\d\s]*\s?FCFA$/i.test(strVal)) {
+                        styleObj.align = 'right';
+                    }
                 }
 
                 if (Object.keys(styleObj).length > 0) {
@@ -583,60 +971,50 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
         return { cellStyles, colWidths, rowHeights };
     };
 
-    const handleFileUpload = (e) => {
+    const handleFileUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (evt) => {
-            try {
-                const data = new Uint8Array(evt.target.result);
-                const wb = XLSX.read(data, { type: 'array', cellStyles: true, cellFormulas: true, cellDates: true, cellNF: true });
-                const parsedSheets = wb.SheetNames.map(sheetName => {
-                    const worksheet = wb.Sheets[sheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
-                    const rawMerges = worksheet['!merges'] || [];
-                    const merges = rawMerges.map(m => ({
-                        startRow: m.s.r,
-                        startCol: m.s.c,
-                        endRow: m.e.r,
-                        endCol: m.e.c,
-                        rowSpan: m.e.r - m.s.r + 1,
-                        colSpan: m.e.c - m.s.c + 1
-                    }));
+        try {
+            const newWb = await parseExcelFile(file);
+            const parsedSheets = newWb.sheets || [];
+            newWb.id = `wb-${Date.now()}`;
+            newWb.name = file.name;
+            newWb.size = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
 
-                    const { cellStyles: sheetCellStyles, colWidths: sheetColWidths, rowHeights: sheetRowHeights } = parseSheetStylesAndDimensions(worksheet);
-
-                    const rowCount = Math.max(jsonData.length, 50);
-                    const colCount = Math.max(jsonData[0] ? jsonData[0].length : 0, 26);
-                    const fullData = [];
-                    for (let r = 0; r < rowCount; r++) {
-                        const row = [];
-                        for (let c = 0; c < colCount; c++) {
-                            row.push(jsonData[r] && jsonData[r][c] !== undefined ? String(jsonData[r][c]) : '');
-                        }
-                        fullData.push(row);
-                    }
-                    return { name: sheetName, data: fullData, merges, cellStyles: sheetCellStyles, colWidths: sheetColWidths, rowHeights: sheetRowHeights };
-                });
-                setCurrentWorkbook({ name: file.name, sheets: parsedSheets });
-                setActiveSheetIndex(0);
-                setStatusMessage(`Fichier "${file.name}" chargé avec ${parsedSheets.reduce((acc, s) => acc + (s.merges?.length || 0), 0)} cellule(s) fusionnée(s).`);
-                setTimeout(() => setStatusMessage(''), 4000);
-            } catch (err) {
-                console.error(err);
-                setStatusMessage("Erreur de lecture du fichier. Assurez-vous qu'il s'agit d'un fichier Excel ou CSV valide.");
-                setTimeout(() => setStatusMessage(''), 4000);
+            const firstSheet = parsedSheets[0];
+            if (firstSheet) {
+                setCellStyles(firstSheet.cellStyles || EMPTY_OBJ);
+                setColWidths(firstSheet.colWidths || EMPTY_OBJ);
+                setRowHeights(firstSheet.rowHeights || EMPTY_OBJ);
+                setHiddenRows(firstSheet.hiddenRows?.length > 0 ? new Set(firstSheet.hiddenRows) : EMPTY_SET);
+                setHiddenCols(firstSheet.hiddenCols?.length > 0 ? new Set(firstSheet.hiddenCols) : EMPTY_SET);
             }
-        };
-        reader.readAsArrayBuffer(file);
+
+            if (onUploadSuccess) {
+                onUploadSuccess(newWb);
+            } else {
+                setCurrentWorkbook(newWb);
+                setActiveSheetIndex(0);
+                try {
+                    localStorage.setItem('antic_active_workbook', JSON.stringify(newWb));
+                    if (onWorkbookChange) onWorkbookChange(newWb);
+                } catch (err) { }
+            }
+            setStatusMessage(`Fichier "${file.name}" chargé avec succès (${parsedSheets.length} feuille(s)).`);
+            setTimeout(() => setStatusMessage(''), 4000);
+        } catch (err) {
+            console.error(err);
+            setStatusMessage("Erreur de lecture du fichier Excel.");
+            setTimeout(() => setStatusMessage(''), 4000);
+        }
     };
 
 
     const handleSaveExcelWorkbook = () => {
         try {
             const wb = XLSX.utils.book_new();
-
             const allSheets = currentWorkbook?.sheets || [];
+
             allSheets.forEach(sheet => {
                 const rawData = sheet.data || [];
                 let lastRowIndex = rawData.length - 1;
@@ -644,15 +1022,83 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
                     lastRowIndex--;
                 }
                 const cleanData = rawData.slice(0, Math.max(lastRowIndex + 1, 1));
-
                 const ws = XLSX.utils.aoa_to_sheet(cleanData);
+
+                // High-fidelity cell styles & alignment export:
+                const sheetStyles = sheet.cellStyles || {};
+                Object.keys(sheetStyles).forEach(key => {
+                    const [rStr, cStr] = key.split('_');
+                    const r = parseInt(rStr, 10);
+                    const c = parseInt(cStr, 10);
+                    const cellAddress = XLSX.utils.encode_cell({ r, c });
+                    if (!ws[cellAddress]) {
+                        ws[cellAddress] = { v: '', t: 's' };
+                    }
+                    const st = sheetStyles[key];
+                    if (st) {
+                        const styleObj = {};
+                        // Font
+                        styleObj.font = {};
+                        if (st.bold) styleObj.font.bold = true;
+                        if (st.italic) styleObj.font.italic = true;
+                        if (st.underline) styleObj.font.underline = true;
+                        if (st.fontFamily) styleObj.font.name = st.fontFamily;
+                        if (st.fontSize) styleObj.font.sz = parseInt(st.fontSize, 10) || 11;
+                        if (st.color) {
+                            const hex = String(st.color).replace('#', '');
+                            styleObj.font.color = { rgb: hex };
+                        }
+
+                        // Background Fill
+                        if (st.bg && st.bg !== '#FFFFFF' && st.bg !== 'transparent') {
+                            const hexBg = String(st.bg).replace('#', '');
+                            styleObj.fill = { fgColor: { rgb: hexBg } };
+                        }
+
+                        // Alignment (Horizontal & Vertical & Wrap)
+                        styleObj.alignment = {};
+                        const hAlign = st.align || (st.ht === '0' ? 'center' : (st.ht === '2' ? 'right' : (st.ht === '1' ? 'left' : null)));
+                        if (hAlign) styleObj.alignment.horizontal = hAlign;
+
+                        const vAlign = st.verticalAlign || (st.vt === '0' ? 'center' : (st.vt === '1' ? 'top' : (st.vt === '2' ? 'bottom' : null)));
+                        if (vAlign) styleObj.alignment.vertical = vAlign;
+
+                        if (st.wrapText) styleObj.alignment.wrapText = true;
+
+                        ws[cellAddress].s = styleObj;
+                    }
+                });
+
+                // Attach Merged Ranges (High-Fidelity Merges)
+                const merges = sheet.merges || [];
+                if (merges.length > 0) {
+                    ws['!merges'] = merges.map(m => {
+                        const startRow = m.startRow !== undefined ? m.startRow : m.s?.r;
+                        const endRow = m.endRow !== undefined ? m.endRow : m.e?.r;
+                        const startCol = m.startCol !== undefined ? m.startCol : m.s?.c;
+                        const endCol = m.endCol !== undefined ? m.endCol : m.e?.c;
+                        return {
+                            s: { r: Math.min(startRow, endRow), c: Math.min(startCol, endCol) },
+                            e: { r: Math.max(startRow, endRow), c: Math.max(startCol, endCol) }
+                        };
+                    });
+                }
+
+                // Attach Column Widths
+                const colWidthsObj = sheet.colWidths || {};
+                const colsArr = [];
+                Object.keys(colWidthsObj).forEach(cIdx => {
+                    const w = colWidthsObj[cIdx];
+                    if (w) colsArr[parseInt(cIdx, 10)] = { wpx: w };
+                });
+                if (colsArr.length > 0) ws['!cols'] = colsArr;
+
                 XLSX.utils.book_append_sheet(wb, ws, sheet.name || 'Feuille');
             });
 
             const originalName = currentWorkbook?.name || 'Document_Excel.xlsx';
             const extMatch = originalName.match(/\.([a-zA-Z0-9]+)$/);
             const ext = extMatch ? extMatch[1].toLowerCase() : 'xlsx';
-
             let bookType = 'xlsx';
             if (ext === 'xls') bookType = 'biff8';
             else if (ext === 'xlsm') bookType = 'xlsm';
@@ -664,8 +1110,8 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
 
             const exportFileName = extMatch ? originalName : `${originalName}.xlsx`;
 
-            XLSX.writeFile(wb, exportFileName, { bookType });
-            setStatusMessage(`Fichier "${exportFileName}" enregistré avec succès !`);
+            XLSX.writeFile(wb, exportFileName, { bookType, cellStyles: true });
+            setStatusMessage(`Fichier "${exportFileName}" enregistré avec succès avec tous ses styles et fusions !`);
             setTimeout(() => setStatusMessage(''), 4000);
         } catch (err) {
             console.error("Save error:", err);
@@ -674,17 +1120,82 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
         }
     };
 
-    // Keyboard shortcut Ctrl+S / Cmd+S for quick save
+
+    // Keyboard shortcuts (Ctrl+S, Ctrl+Z, Ctrl+Y, Ctrl+C, Ctrl+V)
     useEffect(() => {
-        const handleKeyDown = (e) => {
+        const handleKeyDown = async (e) => {
             if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
                 e.preventDefault();
                 handleSaveExcelWorkbook();
+            } else if ((e.ctrlKey || e.metaKey) && (e.key === 'z' || e.key === 'Z')) {
+                e.preventDefault();
+                handleUndo();
+            } else if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || e.key === 'Y')) {
+                e.preventDefault();
+                handleRedo();
+            } else if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'C')) {
+                if (editingCell) return;
+                e.preventDefault();
+                const minR = Math.min(selectionRange.start.r, selectionRange.end.r);
+                const maxR = Math.max(selectionRange.start.r, selectionRange.end.r);
+                const minC = Math.min(selectionRange.start.c, selectionRange.end.c);
+                const maxC = Math.max(selectionRange.start.c, selectionRange.end.c);
+                const data = currentSheet.data || [];
+                let tsv = '';
+                for (let r = minR; r <= maxR; r++) {
+                    const rowVals = [];
+                    for (let c = minC; c <= maxC; c++) {
+                        let val = data[r][c] || '';
+                        if (typeof val === 'string' && (val.includes('\t') || val.includes('\n'))) {
+                            val = `"${val.replace(/"/g, '""')}"`;
+                        }
+                        rowVals.push(val);
+                    }
+                    tsv += rowVals.join('\t') + '\n';
+                }
+                navigator.clipboard.writeText(tsv).then(() => {
+                    setStatusMessage("Cellules copiées !");
+                    setTimeout(() => setStatusMessage(''), 1500);
+                });
+            } else if ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) {
+                if (editingCell) return;
+                e.preventDefault();
+                pushHistory(); // Save state before paste
+                try {
+                    const tsv = await navigator.clipboard.readText();
+                    if (!tsv) return;
+                    const lines = tsv.split('\n').filter((l, i, arr) => !(i === arr.length - 1 && l === ''));
+                    const startR = Math.min(selectionRange.start.r, selectionRange.end.r);
+                    const startC = Math.min(selectionRange.start.c, selectionRange.end.c);
+                    const updatedSheets = [...sheets];
+                    const updatedData = [...(currentSheet.data || [])].map(row => [...row]);
+
+                    for (let i = 0; i < lines.length; i++) {
+                        const tr = startR + i;
+                        if (tr >= updatedData.length) break;
+                        const cols = lines[i].split('\t');
+                        for (let j = 0; j < cols.length; j++) {
+                            const tc = startC + j;
+                            if (tc >= 26) break;
+                            let val = cols[j];
+                            if (val.startsWith('"') && val.endsWith('"')) {
+                                val = val.substring(1, val.length - 1).replace(/""/g, '"');
+                            }
+                            if (updatedData[tr]) updatedData[tr][tc] = val;
+                        }
+                    }
+                    updatedSheets[activeSheetIndex] = { ...currentSheet, data: updatedData };
+                    const nextWorkbook = { ...currentWorkbook, sheets: updatedSheets };
+
+                    setCurrentWorkbook(nextWorkbook);
+                    setStatusMessage("Données collées !");
+                    setTimeout(() => setStatusMessage(''), 1500);
+                } catch (err) { }
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [currentWorkbook, sheets]);
+    }, [currentWorkbook, sheets, activeSheetIndex, currentSheet, selectionRange, editingCell]);
 
     const getColLabel = (index) => {
         let label = '';
@@ -709,6 +1220,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
     const handleCellMouseUp = () => setIsMouseDown(false);
 
     const handleCellDoubleClick = (r, c) => {
+        pushHistory(); // Save state right before editing starts
         setEditingCell({ r, c });
         setCellInputValue(sheetData[r]?.[c] || '');
     };
@@ -752,23 +1264,71 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
 
     // ─── ROW OPERATIONS ───
     const handleInsertRowAbove = () => {
+        const newMerges = (currentSheet.merges || []).map(m => {
+            let sR = m.startRow !== undefined ? m.startRow : m.s?.r;
+            let eR = m.endRow !== undefined ? m.endRow : m.e?.r;
+            let sC = m.startCol !== undefined ? m.startCol : m.s?.c;
+            let eC = m.endCol !== undefined ? m.endCol : m.e?.c;
+            if (sR >= minR) { sR++; eR++; }
+            else if (sR < minR && eR >= minR) { eR++; }
+            return { startRow: sR, endRow: eR, startCol: sC, endCol: eC, rowSpan: eR - sR + 1, colSpan: eC - sC + 1 };
+        });
         const updatedData = [...sheetData];
         updatedData.splice(minR, 0, Array(sheetData[0]?.length || 26).fill(''));
-        updateSheetData(updatedData);
+
+        pushHistory();
+        const updatedSheets = [...sheets];
+        updatedSheets[activeSheetIndex] = { ...currentSheet, data: updatedData, merges: newMerges };
+        setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
         setStatusMessage(`Ligne insérée au-dessus de la ligne ${minR + 1}`);
         setActiveMenu(null);
     };
 
     const handleInsertRowBelow = () => {
+        const newMerges = (currentSheet.merges || []).map(m => {
+            let sR = m.startRow !== undefined ? m.startRow : m.s?.r;
+            let eR = m.endRow !== undefined ? m.endRow : m.e?.r;
+            let sC = m.startCol !== undefined ? m.startCol : m.s?.c;
+            let eC = m.endCol !== undefined ? m.endCol : m.e?.c;
+            if (sR > maxR) { sR++; eR++; }
+            else if (sR <= maxR && eR > maxR) { eR++; } // Enlarge if split
+            return { startRow: sR, endRow: eR, startCol: sC, endCol: eC, rowSpan: eR - sR + 1, colSpan: eC - sC + 1 };
+        });
         const updatedData = [...sheetData];
         updatedData.splice(maxR + 1, 0, Array(sheetData[0]?.length || 26).fill(''));
-        updateSheetData(updatedData);
+
+        pushHistory();
+        const updatedSheets = [...sheets];
+        updatedSheets[activeSheetIndex] = { ...currentSheet, data: updatedData, merges: newMerges };
+        setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
         setStatusMessage(`Ligne insérée en-dessous de la ligne ${maxR + 1}`);
         setActiveMenu(null);
     };
 
     const handleDeleteRows = () => {
-        updateSheetData(sheetData.filter((_, idx) => idx < minR || idx > maxR));
+        const deleteCount = maxR - minR + 1;
+        const newMerges = (currentSheet.merges || []).map(m => {
+            let sR = m.startRow !== undefined ? m.startRow : m.s?.r;
+            let eR = m.endRow !== undefined ? m.endRow : m.e?.r;
+            let sC = m.startCol !== undefined ? m.startCol : m.s?.c;
+            let eC = m.endCol !== undefined ? m.endCol : m.e?.c;
+
+            if (sR > maxR) { sR -= deleteCount; eR -= deleteCount; }
+            else if (sR < minR && eR >= minR) { eR -= Math.min(eR, maxR) - minR + 1; }
+            else if (sR >= minR && eR <= maxR) { return null; }
+            else if (sR >= minR && sR <= maxR && eR > maxR) { sR = minR; eR -= deleteCount; }
+
+            return { startRow: sR, endRow: eR, startCol: sC, endCol: eC, rowSpan: eR - sR + 1, colSpan: eC - sC + 1 };
+        }).filter(Boolean).filter(m => m.rowSpan > 1 || m.colSpan > 1);
+
+        const updatedSheets = [...sheets];
+        updatedSheets[activeSheetIndex] = {
+            ...currentSheet,
+            data: sheetData.filter((_, idx) => idx < minR || idx > maxR),
+            merges: newMerges
+        };
+        pushHistory();
+        setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
         setStatusMessage(`Ligne(s) ${minR + 1} à ${maxR + 1} supprimée(s)`);
         setActiveMenu(null);
     };
@@ -811,19 +1371,73 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
 
     // ─── COLUMN OPERATIONS ───
     const handleInsertColumnBefore = () => {
-        updateSheetData(sheetData.map(row => { const r = [...row]; r.splice(minC, 0, ''); return r; }));
+        const newMerges = (currentSheet.merges || []).map(m => {
+            let sR = m.startRow !== undefined ? m.startRow : m.s?.r;
+            let eR = m.endRow !== undefined ? m.endRow : m.e?.r;
+            let sC = m.startCol !== undefined ? m.startCol : m.s?.c;
+            let eC = m.endCol !== undefined ? m.endCol : m.e?.c;
+            if (sC >= minC) { sC++; eC++; }
+            else if (sC < minC && eC >= minC) { eC++; }
+            return { startRow: sR, endRow: eR, startCol: sC, endCol: eC, rowSpan: eR - sR + 1, colSpan: eC - sC + 1 };
+        });
+        pushHistory();
+        const updatedSheets = [...sheets];
+        updatedSheets[activeSheetIndex] = {
+            ...currentSheet,
+            data: sheetData.map(row => { const r = [...row]; r.splice(minC, 0, ''); return r; }),
+            merges: newMerges
+        };
+        setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
         setStatusMessage(`Colonne insérée avant la colonne ${getColLabel(minC)}`);
         setActiveMenu(null);
     };
 
     const handleInsertColumnAfter = () => {
-        updateSheetData(sheetData.map(row => { const r = [...row]; r.splice(maxC + 1, 0, ''); return r; }));
+        const newMerges = (currentSheet.merges || []).map(m => {
+            let sR = m.startRow !== undefined ? m.startRow : m.s?.r;
+            let eR = m.endRow !== undefined ? m.endRow : m.e?.r;
+            let sC = m.startCol !== undefined ? m.startCol : m.s?.c;
+            let eC = m.endCol !== undefined ? m.endCol : m.e?.c;
+            if (sC > maxC) { sC++; eC++; }
+            else if (sC <= maxC && eC > maxC) { eC++; }
+            return { startRow: sR, endRow: eR, startCol: sC, endCol: eC, rowSpan: eR - sR + 1, colSpan: eC - sC + 1 };
+        });
+        pushHistory();
+        const updatedSheets = [...sheets];
+        updatedSheets[activeSheetIndex] = {
+            ...currentSheet,
+            data: sheetData.map(row => { const r = [...row]; r.splice(maxC + 1, 0, ''); return r; }),
+            merges: newMerges
+        };
+        setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
         setStatusMessage(`Colonne insérée après la colonne ${getColLabel(maxC)}`);
         setActiveMenu(null);
     };
 
     const handleDeleteColumns = () => {
-        updateSheetData(sheetData.map(row => row.filter((_, idx) => idx < minC || idx > maxC)));
+        const deleteCount = maxC - minC + 1;
+        const newMerges = (currentSheet.merges || []).map(m => {
+            let sR = m.startRow !== undefined ? m.startRow : m.s?.r;
+            let eR = m.endRow !== undefined ? m.endRow : m.e?.r;
+            let sC = m.startCol !== undefined ? m.startCol : m.s?.c;
+            let eC = m.endCol !== undefined ? m.endCol : m.e?.c;
+
+            if (sC > maxC) { sC -= deleteCount; eC -= deleteCount; }
+            else if (sC < minC && eC >= minC) { eC -= Math.min(eC, maxC) - minC + 1; }
+            else if (sC >= minC && eC <= maxC) { return null; }
+            else if (sC >= minC && sC <= maxC && eC > maxC) { sC = minC; eC -= deleteCount; }
+
+            return { startRow: sR, endRow: eR, startCol: sC, endCol: eC, rowSpan: eR - sR + 1, colSpan: eC - sC + 1 };
+        }).filter(Boolean).filter(m => m.rowSpan > 1 || m.colSpan > 1);
+
+        const updatedSheets = [...sheets];
+        updatedSheets[activeSheetIndex] = {
+            ...currentSheet,
+            data: sheetData.map(row => row.filter((_, idx) => idx < minC || idx > maxC)),
+            merges: newMerges
+        };
+        pushHistory();
+        setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
         setStatusMessage(`Colonne(s) ${getColLabel(minC)} à ${getColLabel(maxC)} supprimée(s)`);
         setActiveMenu(null);
     };
@@ -891,6 +1505,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
     };
 
     const updateSheetData = (newData) => {
+        pushHistory();
         const updatedSheets = [...sheets];
         updatedSheets[activeSheetIndex] = { ...currentSheet, data: newData };
         setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
@@ -929,7 +1544,21 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
             </div>
 
             {/* Level 2 Formatting Toolbar */}
-            <div style={{ height: '48px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', padding: '0 1rem', gap: '0.6rem', position: 'relative', zIndex: 20 }}>
+            <div style={{ minHeight: '48px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', flexWrap: 'wrap', padding: '0.4rem 1rem', gap: '0.5rem 0.6rem', position: 'relative', zIndex: 20 }}>
+
+                {/* Undo / Redo Buttons */}
+                <CustomTooltip text="Annuler (Ctrl+Z)">
+                    <button onClick={handleUndo} disabled={historyStack.length === 0} style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', color: historyStack.length > 0 ? '#02006c' : '#94A3B8', cursor: historyStack.length > 0 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center' }}>
+                        <Undo2 size={15} />
+                    </button>
+                </CustomTooltip>
+                <CustomTooltip text="Rétablir (Ctrl+Y)">
+                    <button onClick={handleRedo} disabled={futureStack.length === 0} style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', color: futureStack.length > 0 ? '#10B981' : '#94A3B8', cursor: futureStack.length > 0 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center' }}>
+                        <Redo2 size={15} />
+                    </button>
+                </CustomTooltip>
+
+                <div style={{ width: '1px', height: '22px', background: '#CBD5E1' }} />
 
                 {/* Row Dropdown Menu */}
                 <div style={{ position: 'relative' }}>
@@ -1039,10 +1668,163 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
 
                 <div style={{ width: '1px', height: '22px', background: '#CBD5E1' }} />
 
-                {/* Text Alignments */}
-                <button onClick={() => applyAlign('left')} style={{ padding: '5px 7px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', cursor: 'pointer' }}><AlignLeft size={14} /></button>
-                <button onClick={() => applyAlign('center')} style={{ padding: '5px 7px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', cursor: 'pointer' }}><AlignCenter size={14} /></button>
-                <button onClick={() => applyAlign('right')} style={{ padding: '5px 7px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', cursor: 'pointer' }}><AlignRight size={14} /></button>
+                {/* Horizontal Alignments (Gauche, Centre, Droite) */}
+                <CustomTooltip text="Aligner à gauche">
+                    <button
+                        onClick={() => applyAlign('left')}
+                        style={{
+                            padding: '5px 7px',
+                            borderRadius: '6px',
+                            border: '1px solid #CBD5E1',
+                            background: cellStyles[`${minR}_${minC}`]?.align === 'left' || !cellStyles[`${minR}_${minC}`]?.align ? '#E0E7FF' : '#FFF',
+                            color: cellStyles[`${minR}_${minC}`]?.align === 'left' || !cellStyles[`${minR}_${minC}`]?.align ? '#02006c' : '#0F172A',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
+                    >
+                        <AlignLeft size={15} />
+                    </button>
+                </CustomTooltip>
+
+                <CustomTooltip text="Centrer le texte">
+                    <button
+                        onClick={() => applyAlign('center')}
+                        style={{
+                            padding: '5px 7px',
+                            borderRadius: '6px',
+                            border: '1px solid #CBD5E1',
+                            background: cellStyles[`${minR}_${minC}`]?.align === 'center' ? '#E0E7FF' : '#FFF',
+                            color: cellStyles[`${minR}_${minC}`]?.align === 'center' ? '#02006c' : '#0F172A',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
+                    >
+                        <AlignCenter size={15} />
+                    </button>
+                </CustomTooltip>
+
+                <CustomTooltip text="Aligner à droite">
+                    <button
+                        onClick={() => applyAlign('right')}
+                        style={{
+                            padding: '5px 7px',
+                            borderRadius: '6px',
+                            border: '1px solid #CBD5E1',
+                            background: cellStyles[`${minR}_${minC}`]?.align === 'right' ? '#E0E7FF' : '#FFF',
+                            color: cellStyles[`${minR}_${minC}`]?.align === 'right' ? '#02006c' : '#0F172A',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
+                    >
+                        <AlignRight size={15} />
+                    </button>
+                </CustomTooltip>
+
+                <div style={{ width: '1px', height: '22px', background: '#CBD5E1' }} />
+
+                {/* Vertical Alignments (Haut, Milieu, Bas) */}
+                <CustomTooltip text="Aligner en haut">
+                    <button
+                        onClick={() => applyVerticalAlign('top')}
+                        style={{
+                            padding: '5px 7px',
+                            borderRadius: '6px',
+                            border: '1px solid #CBD5E1',
+                            background: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'top' ? '#E0E7FF' : '#FFF',
+                            color: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'top' ? '#02006c' : '#0F172A',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
+                    >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="3" y1="4" x2="21" y2="4" strokeWidth="3" />
+                            <path d="M12 20V9" />
+                            <path d="M8 13l4-4 4 4" stroke="#EA580C" strokeWidth="2.5" />
+                        </svg>
+                    </button>
+                </CustomTooltip>
+
+                <CustomTooltip text="Aligner au milieu (Vertical Center)">
+                    <button
+                        onClick={() => applyVerticalAlign('middle')}
+                        style={{
+                            padding: '5px 7px',
+                            borderRadius: '6px',
+                            border: '1px solid #CBD5E1',
+                            background: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'middle' || !cellStyles[`${minR}_${minC}`]?.verticalAlign ? '#E0E7FF' : '#FFF',
+                            color: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'middle' || !cellStyles[`${minR}_${minC}`]?.verticalAlign ? '#02006c' : '#0F172A',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
+                    >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="3" y1="12" x2="21" y2="12" strokeWidth="3" />
+                            <path d="M12 5v3" />
+                            <path d="M9 7l3 3 3-3" stroke="#EA580C" strokeWidth="2.5" />
+                            <path d="M12 19v-3" />
+                            <path d="M9 17l3-3 3 3" stroke="#EA580C" strokeWidth="2.5" />
+                        </svg>
+                    </button>
+                </CustomTooltip>
+
+                <CustomTooltip text="Aligner en bas">
+                    <button
+                        onClick={() => applyVerticalAlign('bottom')}
+                        style={{
+                            padding: '5px 7px',
+                            borderRadius: '6px',
+                            border: '1px solid #CBD5E1',
+                            background: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'bottom' ? '#E0E7FF' : '#FFF',
+                            color: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'bottom' ? '#02006c' : '#0F172A',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
+                    >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="3" y1="20" x2="21" y2="20" strokeWidth="3" />
+                            <path d="M12 4v11" />
+                            <path d="M8 11l4 4 4-4" stroke="#EA580C" strokeWidth="2.5" />
+                        </svg>
+                    </button>
+                </CustomTooltip>
+
+                <div style={{ width: '1px', height: '22px', background: '#CBD5E1' }} />
+
+                {/* Wrap Text Button (Renvoi à la ligne) */}
+                <CustomTooltip text="Renvoi à la ligne automatique (Wrap Text)">
+                    <button
+                        onClick={toggleWrapText}
+                        style={{
+                            padding: '5px 7px',
+                            borderRadius: '6px',
+                            border: '1px solid #CBD5E1',
+                            background: cellStyles[`${minR}_${minC}`]?.wrapText ? '#E0E7FF' : '#FFF',
+                            color: cellStyles[`${minR}_${minC}`]?.wrapText ? '#02006c' : '#0F172A',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center'
+                        }}
+                    >
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                            <line x1="3" y1="6" x2="21" y2="6" />
+                            <path d="M3 12h14a3 3 0 1 1 0 6H11" />
+                            <path d="M14 15l-3 3 3 3" stroke="#EA580C" strokeWidth="2.5" />
+                            <line x1="3" y1="18" x2="7" y2="18" />
+                        </svg>
+                    </button>
+                </CustomTooltip>
+
+                <div style={{ width: '1px', height: '22px', background: '#CBD5E1' }} />
+
+                {/* Bordures : Toutes les bordures & Sans bordures */}
+                <CustomTooltip text="Toutes les bordures"><button onClick={() => applyBorders('all')} style={{ padding: '5px 7px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#0F172A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="3" x2="12" y2="21" /><line x1="3" y1="12" x2="21" y2="12" /></svg></button></CustomTooltip>
+                <CustomTooltip text="Effacer les bordures (Sans bordures)"><button onClick={() => applyBorders('none')} style={{ padding: '5px 7px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', cursor: 'pointer', display: 'flex', alignItems: 'center' }}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="1.8" strokeDasharray="3 2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="12" y1="3" x2="12" y2="21" /><line x1="3" y1="12" x2="21" y2="12" /></svg></button></CustomTooltip>
 
                 <div style={{ width: '1px', height: '22px', background: '#CBD5E1' }} />
 
@@ -1064,7 +1846,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
                             fontSize: '0.75rem'
                         }}
                     >
-                        <Grid size={14} color="#02006c" />
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#475569" /><rect x="8" y="8" width="8" height="8" fill="rgba(220, 38, 38, 0.15)" stroke="#DC2626" strokeWidth="2" /><path d="M10 12h4" stroke="#DC2626" strokeWidth="2" /></svg>
                         <span>Fusionner</span>
                     </button>
                 </CustomTooltip>
@@ -1093,6 +1875,14 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
                         <FileText size={17} color="#FFFFFF" />
                     </button>
                 </CustomTooltip>
+
+                {/* Auto-Save Indicator */}
+                {lastAutoSaveTime && (
+                    <div style={{ fontSize: '0.675rem', color: '#10B981', background: 'rgba(16, 185, 129, 0.1)', padding: '4px 8px', borderRadius: '6px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid rgba(16, 185, 129, 0.2)' }}>
+                        <CheckCircle2 size={12} color="#10B981" />
+                        <span>Enregistré à {lastAutoSaveTime}</span>
+                    </div>
+                )}
 
                 {/* Sheet Tools Filter & Sync Icon Button */}
                 <CustomTooltip text={`Sheet Tools - ${currentWorkbook?.sheets?.filter(s => s.type === 'child').length || 0} Feuille(s) Enfant(s)`}>
@@ -1160,84 +1950,175 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
             </div>
 
             {/* Grid Table Canvas */}
-            <div style={{ flex: 1, overflow: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', userSelect: 'none' }}>
-                    <thead>
-                        <tr style={{ background: '#F1F5F9', position: 'sticky', top: 0, zIndex: 10 }}>
-                            <th style={{ padding: '6px', border: '1px solid #CBD5E1', width: '45px', textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, background: '#E2E8F0' }}>#</th>
-                            {(sheetData[0] || Array(26).fill('')).map((_, cIdx) => {
-                                if (hiddenCols.has(cIdx)) return null;
-                                const customW = colWidths[cIdx] ? `${colWidths[cIdx]}px` : '100px';
-                                return (
-                                    <th key={cIdx} style={{ padding: '6px 12px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: 700, minWidth: customW, width: customW, fontSize: '0.75rem' }}>
-                                        {getColLabel(cIdx)}
-                                    </th>
-                                );
-                            })}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {sheetData.map((row, rIdx) => {
-                            if (hiddenRows.has(rIdx)) return null;
-                            const customH = rowHeights[rIdx] ? `${rowHeights[rIdx]}px` : '28px';
+            <div style={{ flex: 1, overflow: 'auto', minWidth: 0 }}>
+                {(() => {
+                    const isRowHidden = (r) => {
+                        if (!hiddenRows) return false;
+                        if (hiddenRows instanceof Set) return hiddenRows.has(r);
+                        if (Array.isArray(hiddenRows)) return hiddenRows.includes(r);
+                        return false;
+                    };
+                    const isColHidden = (c) => {
+                        if (!hiddenCols) return false;
+                        if (hiddenCols instanceof Set) return hiddenCols.has(c);
+                        if (Array.isArray(hiddenCols)) return hiddenCols.includes(c);
+                        return false;
+                    };
 
-                            return (
-                                <tr key={rIdx} style={{ height: customH }}>
-                                    <td style={{ padding: '4px 6px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: 700, color: '#64748B', background: '#F8FAFC', fontSize: '0.75rem' }}>
-                                        {rIdx + 1}
-                                    </td>
-                                    {row.map((cellValue, cIdx) => {
-                                        if (hiddenCols.has(cIdx)) return null;
-                                        const mergeInfo = getMergeInfo(rIdx, cIdx, currentSheet.merges);
-                                        if (mergeInfo?.isCovered) return null;
-
-                                        const selected = isCellSelected(rIdx, cIdx);
-                                        const isEditingThisCell = editingCell && editingCell.r === rIdx && editingCell.c === cIdx;
-                                        const customStyle = cellStyles[`${rIdx}_${cIdx}`] || {};
+                    return (
+                        <table style={{ borderCollapse: 'collapse', fontSize: '0.825rem', userSelect: 'none', tableLayout: 'fixed', width: 'auto' }}>
+                            <thead>
+                                <tr style={{ background: '#F1F5F9', position: 'sticky', top: 0, zIndex: 10 }}>
+                                    <th style={{ padding: '6px', border: '1px solid #CBD5E1', width: '45px', minWidth: '45px', textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, background: '#E2E8F0' }}>#</th>
+                                    {(sheetData[0] || Array(26).fill('')).map((_, cIdx) => {
+                                        if (isColHidden(cIdx)) return null;
+                                        const customW = colWidths[cIdx] ? `${colWidths[cIdx]}px` : '90px';
                                         return (
-                                            <td
-                                                key={cIdx}
-                                                rowSpan={mergeInfo?.isMaster ? mergeInfo.rowSpan : undefined}
-                                                colSpan={mergeInfo?.isMaster ? mergeInfo.colSpan : undefined}
-                                                onMouseDown={() => handleCellMouseDown(rIdx, cIdx)}
-                                                onMouseEnter={() => handleCellMouseEnter(rIdx, cIdx)}
-                                                onDoubleClick={() => handleCellDoubleClick(rIdx, cIdx)}
-                                                style={{
-                                                    padding: isEditingThisCell ? 0 : '6px 10px',
-                                                    border: selected ? '2px solid #02006c' : '1px solid #E2E8F0',
-                                                    background: customStyle.bg ? customStyle.bg : (selected ? 'rgba(2, 0, 108, 0.12)' : '#FFFFFF'),
-                                                    color: customStyle.color ? customStyle.color : '#0F172A',
-                                                    fontWeight: customStyle.bold ? 800 : 400,
-                                                    fontStyle: customStyle.italic ? 'italic' : 'normal',
-                                                    textDecoration: customStyle.underline ? 'underline' : 'none',
-                                                    textAlign: customStyle.align || 'left',
-                                                    fontFamily: customStyle.fontFamily || 'Inter',
-                                                    fontSize: customStyle.fontSize || '13px',
-                                                    cursor: 'cell',
-                                                    height: customH,
-                                                    whiteSpace: 'nowrap'
-                                                }}
-                                            >
-                                                {isEditingThisCell ? (
-                                                    <input
-                                                        ref={inlineInputRef}
-                                                        autoFocus
-                                                        type="text"
-                                                        value={cellInputValue}
-                                                        onChange={(e) => handleCellValueChange(e.target.value)}
-                                                        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Tab') setEditingCell(null); }}
-                                                        onBlur={() => setEditingCell(null)}
-                                                        style={{ width: '100%', height: '100%', padding: '4px 8px', border: 'none', outline: '2px solid #02006c', background: '#FFF' }}
-                                                    />
-                                                ) : cellValue}
-                                            </td>
+                                            <th key={cIdx} style={{ padding: '6px 12px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: 700, minWidth: customW, width: customW, maxWidth: customW, fontSize: '0.75rem', position: 'relative', userSelect: 'none', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {getColLabel(cIdx)}
+                                                <div
+                                                    onMouseDown={(e) => handleColResizeStart(e, cIdx)}
+                                                    title="Glisser pour redimensionner la largeur"
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: 0,
+                                                        right: 0,
+                                                        width: '6px',
+                                                        height: '100%',
+                                                        cursor: 'col-resize',
+                                                        zIndex: 5,
+                                                        background: 'transparent'
+                                                    }}
+                                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#02006c'; }}
+                                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                                />
+                                            </th>
                                         );
                                     })}
                                 </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
+                            </thead>
+                            <tbody>
+                                {sheetData.map((row, rIdx) => {
+                                    if (isRowHidden(rIdx)) return null;
+                                    const customH = rowHeights[rIdx] ? `${rowHeights[rIdx]}px` : '28px';
+
+                                    return (
+                                        <tr key={rIdx} style={{ height: customH }}>
+                                            <td style={{ padding: '4px 6px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: 700, color: '#64748B', background: '#F8FAFC', fontSize: '0.75rem', position: 'relative', userSelect: 'none' }}>
+                                                {rIdx + 1}
+                                                <div
+                                                    onMouseDown={(e) => handleRowResizeStart(e, rIdx)}
+                                                    title="Glisser pour redimensionner la hauteur"
+                                                    style={{
+                                                        position: 'absolute',
+                                                        bottom: 0,
+                                                        left: 0,
+                                                        width: '100%',
+                                                        height: '6px',
+                                                        cursor: 'row-resize',
+                                                        zIndex: 5,
+                                                        background: 'transparent'
+                                                    }}
+                                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#02006c'; }}
+                                                    onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+                                                />
+                                            </td>
+                                            {(Array.isArray(row) ? row : Array(26).fill('')).map((cellValue, cIdx) => {
+                                                if (isColHidden(cIdx)) return null;
+                                                const mergeInfo = getMergeInfo(rIdx, cIdx, currentSheet.merges);
+                                                if (mergeInfo?.isCovered) return null;
+
+                                                const customW = colWidths[cIdx] ? `${colWidths[cIdx]}px` : '100px';
+                                                const selected = isCellSelected(rIdx, cIdx);
+                                                const isEditingThisCell = editingCell && editingCell.r === rIdx && editingCell.c === cIdx;
+                                                const customStyle = cellStyles[`${rIdx}_${cIdx}`] || {};
+                                                const isInPreview = isFillDragging && fillTarget && (
+                                                    rIdx >= Math.min(minR, fillTarget.r) && rIdx <= Math.max(maxR, fillTarget.r) &&
+                                                    cIdx >= Math.min(minC, fillTarget.c) && cIdx <= Math.max(maxC, fillTarget.c)
+                                                );
+
+                                                return (
+                                                    <td
+                                                        key={cIdx}
+                                                        rowSpan={mergeInfo?.isMaster ? mergeInfo.rowSpan : undefined}
+                                                        colSpan={mergeInfo?.isMaster ? mergeInfo.colSpan : undefined}
+                                                        onMouseDown={() => handleCellMouseDown(rIdx, cIdx)}
+                                                        onMouseEnter={() => {
+                                                            if (isFillDragging) {
+                                                                setFillTarget({ r: rIdx, c: cIdx });
+                                                            } else if (isMouseDown) {
+                                                                handleCellMouseEnter(rIdx, cIdx);
+                                                            }
+                                                        }}
+                                                        onDoubleClick={() => handleCellDoubleClick(rIdx, cIdx)}
+                                                        style={{
+                                                            position: 'relative',
+                                                            padding: isEditingThisCell ? 0 : '6px 10px',
+                                                            border: isInPreview ? '2px dashed #02006c' : (selected ? '2px solid #02006c' : '1px solid #E2E8F0'),
+                                                            background: isInPreview ? 'rgba(2, 0, 108, 0.2)' : (customStyle.bg ? customStyle.bg : (selected ? 'rgba(2, 0, 108, 0.12)' : '#FFFFFF')),
+                                                            color: customStyle.color ? customStyle.color : '#0F172A',
+                                                            fontWeight: customStyle.bold ? 800 : 400,
+                                                            fontStyle: customStyle.italic ? 'italic' : 'normal',
+                                                            textDecoration: customStyle.underline ? 'underline' : 'none',
+                                                            textAlign: customStyle.align ? customStyle.align : (customStyle.ht === '0' ? 'center' : (customStyle.ht === '2' ? 'right' : (customStyle.ht === '1' ? 'left' : 'left'))),
+                                                            verticalAlign: customStyle.verticalAlign ? customStyle.verticalAlign : (customStyle.vt === '0' ? 'middle' : (customStyle.vt === '1' ? 'top' : (customStyle.vt === '2' ? 'bottom' : 'middle'))),
+                                                            fontFamily: customStyle.fontFamily || 'Inter',
+                                                            fontSize: customStyle.fontSize || '13px',
+                                                            cursor: isFillDragging ? 'crosshair' : 'cell',
+                                                            minWidth: customW,
+                                                            width: customW,
+                                                            height: customH,
+                                                            whiteSpace: customStyle.wrapText ? 'normal' : 'nowrap',
+                                                            wordBreak: customStyle.wrapText ? 'break-word' : 'normal'
+                                                        }}
+                                                    >
+                                                        {isEditingThisCell ? (
+                                                            <input
+                                                                ref={inlineInputRef}
+                                                                autoFocus
+                                                                type="text"
+                                                                value={cellInputValue}
+                                                                onChange={(e) => handleCellValueChange(e.target.value)}
+                                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Tab') setEditingCell(null); }}
+                                                                onBlur={() => setEditingCell(null)}
+                                                                style={{ width: '100%', height: '100%', padding: '4px 8px', border: 'none', outline: '2px solid #02006c', background: '#FFF' }}
+                                                            />
+                                                        ) : cellValue}
+
+                                                        {/* Fill Handle Square at Bottom-Right Corner of Selection */}
+                                                        {rIdx === maxR && cIdx === maxC && !isEditingThisCell && (
+                                                            <div
+                                                                onMouseDown={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setIsFillDragging(true);
+                                                                    setFillTarget({ r: rIdx, c: cIdx });
+                                                                }}
+                                                                title="Cliquer et glisser pour étirer / recopier la cellule"
+                                                                style={{
+                                                                    position: 'absolute',
+                                                                    bottom: '-4px',
+                                                                    right: '-4px',
+                                                                    width: '8px',
+                                                                    height: '8px',
+                                                                    background: '#02006c',
+                                                                    border: '1.5px solid #FFFFFF',
+                                                                    borderRadius: '1px',
+                                                                    cursor: 'crosshair',
+                                                                    zIndex: 35,
+                                                                    boxShadow: '0 0 3px rgba(2, 0, 108, 0.6)'
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </td>
+                                                );
+                                            })}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    );
+                })()}
             </div>
 
             {/* Bottom Tabs Bar with Full Sheet Management */}
@@ -1299,7 +2180,11 @@ export default function FortuneSheetEditor({ selectedWorkbook, onOpenConvertModa
                     return (
                         <div key={idx} style={{ position: 'relative', flexShrink: 0 }}>
                             <div
-                                onClick={() => setActiveSheetIndex(idx)}
+                                onClick={() => {
+                                    setSelectionRange({ start: { r: 0, c: 0 }, end: { r: 0, c: 0 } });
+                                    setEditingCell(null);
+                                    setActiveSheetIndex(idx);
+                                }}
                                 onContextMenu={(e) => {
                                     e.preventDefault();
                                     setActiveSheetMenu(activeSheetMenu === idx ? null : idx);

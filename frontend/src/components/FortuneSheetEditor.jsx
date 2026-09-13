@@ -171,6 +171,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             const activeSheet = selectedWorkbook.sheets?.[0];
             if (activeSheet) {
                 setCellStyles(activeSheet.cellStyles || EMPTY_OBJ);
+                setCellFormulas(activeSheet.cellFormulas || EMPTY_OBJ);
                 setColWidths(activeSheet.colWidths || EMPTY_OBJ);
                 setRowHeights(activeSheet.rowHeights || EMPTY_OBJ);
                 const safeHiddenRows = Array.isArray(activeSheet.hiddenRows) ? activeSheet.hiddenRows : (activeSheet.hiddenRows instanceof Set ? Array.from(activeSheet.hiddenRows) : []);
@@ -186,9 +187,9 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 if (saved) {
                     const parsed = JSON.parse(saved);
                     if (parsed && Array.isArray(parsed.sheets) && parsed.sheets.length > 0) {
-                        const activeSheet = parsed.sheets[0];
                         if (activeSheet) {
                             setCellStyles(activeSheet.cellStyles || EMPTY_OBJ);
+                            setCellFormulas(activeSheet.cellFormulas || EMPTY_OBJ);
                             setColWidths(activeSheet.colWidths || EMPTY_OBJ);
                             setRowHeights(activeSheet.rowHeights || EMPTY_OBJ);
                             setHiddenRows(activeSheet.hiddenRows?.length > 0 ? new Set(activeSheet.hiddenRows) : EMPTY_SET);
@@ -215,6 +216,9 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
 
     // Per-Cell Styles Map: { [`${r}_${c}`]: { bold, italic, underline, color, bg, fontFamily, fontSize, align } }
     const [cellStyles, setCellStyles] = useState({});
+
+    // Per-Cell Formulas Map: { [`${r}_${c}`]: "=1+2" }
+    const [cellFormulas, setCellFormulas] = useState({});
 
     // Row & Column heights / widths / hidden tracking
     const [rowHeights, setRowHeights] = useState({});
@@ -1202,7 +1206,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
     const handleCellMouseDown = (r, c) => {
         setIsMouseDown(true);
         setSelectionRange({ start: { r, c }, end: { r, c } });
-        setCellInputValue(sheetData[r]?.[c] || '');
+        setCellInputValue(cellFormulas[`${r}_${c}`] || sheetData[r]?.[c] || '');
     };
 
     const handleCellMouseEnter = (r, c) => {
@@ -1214,38 +1218,56 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
     const handleCellDoubleClick = (r, c) => {
         pushHistory(); // Save state right before editing starts
         setEditingCell({ r, c });
-        setCellInputValue(sheetData[r]?.[c] || '');
+        setCellInputValue(cellFormulas[`${r}_${c}`] || sheetData[r]?.[c] || '');
     };
 
-    const handleCellValueChange = (val) => {
-        setCellInputValue(val);
+    const handleCellValueChange = (rawVal, computedVal = rawVal, formOverrides = null) => {
+        setCellInputValue(rawVal);
+        const r = selectionRange.start.r;
+        const c = selectionRange.start.c;
         const updatedData = [...sheetData.map(row => [...row])];
-        if (!updatedData[selectionRange.start.r]) updatedData[selectionRange.start.r] = [];
-        updatedData[selectionRange.start.r][selectionRange.start.c] = val;
+        if (!updatedData[r]) updatedData[r] = [];
+        updatedData[r][c] = computedVal;
 
         const updatedSheets = [...sheets];
-        updatedSheets[activeSheetIndex] = { ...currentSheet, data: updatedData };
+        let sheetUpdate = { ...currentSheet, data: updatedData };
+        if (formOverrides) {
+            sheetUpdate.cellFormulas = formOverrides;
+            setCellFormulas(formOverrides);
+        }
+        updatedSheets[activeSheetIndex] = sheetUpdate;
         setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
     };
 
     const commitCellEdit = () => {
         if (!editingCell) return;
-        let finalVal = cellInputValue;
-        if (typeof finalVal === 'string' && finalVal.trim().startsWith('=')) {
+        let rawVal = cellInputValue;
+        let computedVal = rawVal;
+        let newFormulas = { ...cellFormulas };
+        let hasFormulaUpdate = false;
+
+        if (typeof rawVal === 'string' && rawVal.trim().startsWith('=')) {
+            newFormulas[`${editingCell.r}_${editingCell.c}`] = rawVal;
+            hasFormulaUpdate = true;
             try {
-                // Nettoyage de l'expression mathématique pour éviter toute injection
-                const expression = finalVal.substring(1).replace(/[^0-9+\-*/().]/g, '');
+                const expression = rawVal.substring(1).replace(/[^0-9+\-*/().]/g, '');
                 if (expression) {
                     const result = new Function(`return ${expression}`)();
                     if (!isNaN(result) && result !== undefined) {
-                        finalVal = String(result);
-                        handleCellValueChange(finalVal);
+                        computedVal = String(result);
                     }
                 }
             } catch (e) {
-                // En cas d'erreur de parsing (ex: formule complexe Excel non supportée dans ce mode basique), on laisse tel quel.
+                // Keep rawVal as computedVal if it fails to evaluate
+            }
+        } else {
+            if (newFormulas[`${editingCell.r}_${editingCell.c}`]) {
+                delete newFormulas[`${editingCell.r}_${editingCell.c}`];
+                hasFormulaUpdate = true;
             }
         }
+
+        handleCellValueChange(rawVal, computedVal, hasFormulaUpdate ? newFormulas : null);
         setEditingCell(null);
     };
 
@@ -1517,6 +1539,27 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         setActiveMenu(null);
     };
 
+    const handleCreateNewFile = () => {
+        if (window.confirm("Créer un nouveau fichier remplacera le classeur actif. Voulez-vous continuer ?")) {
+            const newWb = {
+                id: `new_${Date.now()}`,
+                name: 'Nouveau_Classeur.xlsx',
+                sheets: [{ name: 'Feuille1', data: createEmptySheetData(100, 26) }]
+            };
+            setCurrentWorkbook(newWb);
+            setActiveSheetIndex(0);
+            setCellStyles({});
+            setCellFormulas({});
+            setColWidths({});
+            setRowHeights({});
+            setHiddenRows(EMPTY_SET);
+            setHiddenCols(EMPTY_SET);
+            if (onWorkbookChange) onWorkbookChange(newWb);
+            setStatusMessage("Nouveau fichier créé avec succès.");
+            setTimeout(() => setStatusMessage(''), 3000);
+        }
+    };
+
     const updateSheetData = (newData) => {
         pushHistory();
         const updatedSheets = [...sheets];
@@ -1539,6 +1582,10 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <button onClick={handleCreateNewFile} style={{ background: '#3B82F6', color: '#FFF', border: '1px solid #2563EB', borderRadius: '10px', padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)', transition: 'all 0.2s ease' }}>
+                        <Plus size={14} /><span>Nouveau</span>
+                    </button>
+                    <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.2)', margin: '0 4px' }} />
                     <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".xlsx,.xls,.xlsm,.xlsb,.xltx,.xltm,.csv,.tsv,.ods,.xml,.htm,.html" style={{ display: 'none' }} />
                     <button onClick={() => fileInputRef.current?.click()} style={{ background: 'rgba(255, 255, 255, 0.15)', color: '#FFF', border: '1px solid rgba(255, 255, 255, 0.3)', borderRadius: '10px', padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         <Upload size={14} /><span>Ouvrir Fichier</span>

@@ -6,7 +6,7 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
     const [showPassword, setShowPassword] = useState(false);
     const [credentials, setCredentials] = useState({
         username: 'p.nankeng@antic.cm',
-        password: '••••••••••••',
+        password: 'AnticAdmin2026!',
         fullName: 'Paul NANKENG'
     });
 

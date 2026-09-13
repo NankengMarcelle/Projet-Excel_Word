@@ -1541,9 +1541,23 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
 
     const handleCreateNewFile = () => {
         if (window.confirm("Créer un nouveau fichier remplacera le classeur actif. Voulez-vous continuer ?")) {
+            const fileName = 'Nouveau_Classeur.xlsx';
+
+            // 1. Génération physique et téléchargement sur la machine de l'utilisateur
+            try {
+                const wb = XLSX.utils.book_new();
+                const emptyData = Array(50).fill(0).map(() => Array(26).fill(''));
+                const ws = XLSX.utils.aoa_to_sheet(emptyData);
+                XLSX.utils.book_append_sheet(wb, ws, "Feuille1");
+                XLSX.writeFile(wb, fileName);
+            } catch (err) {
+                console.error("Erreur lors de la création du fichier .xlsx:", err);
+            }
+
+            // 2. Réinitialisation de l'état de l'application
             const newWb = {
                 id: `new_${Date.now()}`,
-                name: 'Nouveau_Classeur.xlsx',
+                name: fileName,
                 sheets: [{ name: 'Feuille1', data: createEmptySheetData(100, 26) }]
             };
             setCurrentWorkbook(newWb);
@@ -1555,7 +1569,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             setHiddenRows(EMPTY_SET);
             setHiddenCols(EMPTY_SET);
             if (onWorkbookChange) onWorkbookChange(newWb);
-            setStatusMessage("Nouveau fichier créé avec succès.");
+            setStatusMessage("Nouveau fichier créé et téléchargé avec succès.");
             setTimeout(() => setStatusMessage(''), 3000);
         }
     };

@@ -40,9 +40,6 @@ export default function DashboardView({
                 borderBottom: '1px solid #F1F5F9'
             }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>
-                        <Shield size={14} color="#CBD5E1" /> {lang === 'fr' ? "Réseau Sécurisé ANTIC" : "ANTIC Secure Network"}
-                    </div>
                     <h1 style={{ fontSize: '2rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.03em', margin: 0 }}>
                         {lang === 'fr' ? `Bonjour, ${currentUser?.name || 'Pierre Marcelle Nankeng'}.` : `Hello, ${currentUser?.name || 'Pierre Marcelle Nankeng'}.`}
                     </h1>
@@ -56,7 +53,7 @@ export default function DashboardView({
                 <button
                     onClick={onOpenUploadModal}
                     style={{
-                        background: '#0F172A',
+                        background: 'linear-gradient(135deg, #02006c 0%, #1e3a8a 100%)',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: '10px',
@@ -67,11 +64,17 @@ export default function DashboardView({
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)',
-                        transition: 'all 0.2s ease',
+                        boxShadow: '0 4px 15px rgba(2, 0, 108, 0.2)',
+                        transition: 'all 0.25s ease',
                     }}
-                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
-                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(2, 0, 108, 0.35)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(2, 0, 108, 0.2)';
+                    }}
                 >
                     <Upload size={16} /> {lang === 'fr' ? "Nouveau Classeur" : "New Workbook"}
                 </button>

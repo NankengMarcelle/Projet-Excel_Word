@@ -358,9 +358,10 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         if (!wbState) return;
         const stateToSave = JSON.parse(JSON.stringify(wbState));
         if (stateToSave.sheets && stateToSave.sheets[activeSheetIndex]) {
-            stateToSave.sheets[activeSheetIndex].cellStyles = cellStyles;
-            stateToSave.sheets[activeSheetIndex].colWidths = colWidths;
-            stateToSave.sheets[activeSheetIndex].rowHeights = rowHeights;
+            stateToSave.sheets[activeSheetIndex].cellStyles = JSON.parse(JSON.stringify(cellStyles));
+            stateToSave.sheets[activeSheetIndex].cellFormulas = JSON.parse(JSON.stringify(cellFormulas));
+            stateToSave.sheets[activeSheetIndex].colWidths = JSON.parse(JSON.stringify(colWidths));
+            stateToSave.sheets[activeSheetIndex].rowHeights = JSON.parse(JSON.stringify(rowHeights));
         }
         setHistoryStack(prev => [...prev.slice(-30), stateToSave]);
         setFutureStack([]);
@@ -369,9 +370,25 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
     const handleUndo = () => {
         if (historyStack.length === 0) return;
         const previousState = historyStack[historyStack.length - 1];
-        setFutureStack(prev => [...prev, JSON.parse(JSON.stringify(currentWorkbook))]);
+
+        const currentStateToSave = JSON.parse(JSON.stringify(currentWorkbook));
+        if (currentStateToSave.sheets && currentStateToSave.sheets[activeSheetIndex]) {
+            currentStateToSave.sheets[activeSheetIndex].cellStyles = JSON.parse(JSON.stringify(cellStyles));
+            currentStateToSave.sheets[activeSheetIndex].cellFormulas = JSON.parse(JSON.stringify(cellFormulas));
+            currentStateToSave.sheets[activeSheetIndex].colWidths = JSON.parse(JSON.stringify(colWidths));
+            currentStateToSave.sheets[activeSheetIndex].rowHeights = JSON.parse(JSON.stringify(rowHeights));
+        }
+        setFutureStack(prev => [...prev, currentStateToSave]);
         setHistoryStack(prev => prev.slice(0, prev.length - 1));
+
         setCurrentWorkbook(previousState);
+        const activeSheet = previousState.sheets?.[activeSheetIndex];
+        if (activeSheet) {
+            setCellStyles(activeSheet.cellStyles || EMPTY_OBJ);
+            setCellFormulas(activeSheet.cellFormulas || EMPTY_OBJ);
+            setColWidths(activeSheet.colWidths || EMPTY_OBJ);
+            setRowHeights(activeSheet.rowHeights || EMPTY_OBJ);
+        }
         setStatusMessage("Modification annulée");
         setTimeout(() => setStatusMessage(''), 2000);
     };
@@ -379,9 +396,25 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
     const handleRedo = () => {
         if (futureStack.length === 0) return;
         const nextState = futureStack[futureStack.length - 1];
-        setHistoryStack(prev => [...prev, JSON.parse(JSON.stringify(currentWorkbook))]);
+
+        const currentStateToSave = JSON.parse(JSON.stringify(currentWorkbook));
+        if (currentStateToSave.sheets && currentStateToSave.sheets[activeSheetIndex]) {
+            currentStateToSave.sheets[activeSheetIndex].cellStyles = JSON.parse(JSON.stringify(cellStyles));
+            currentStateToSave.sheets[activeSheetIndex].cellFormulas = JSON.parse(JSON.stringify(cellFormulas));
+            currentStateToSave.sheets[activeSheetIndex].colWidths = JSON.parse(JSON.stringify(colWidths));
+            currentStateToSave.sheets[activeSheetIndex].rowHeights = JSON.parse(JSON.stringify(rowHeights));
+        }
+        setHistoryStack(prev => [...prev, currentStateToSave]);
         setFutureStack(prev => prev.slice(0, prev.length - 1));
+
         setCurrentWorkbook(nextState);
+        const activeSheet = nextState.sheets?.[activeSheetIndex];
+        if (activeSheet) {
+            setCellStyles(activeSheet.cellStyles || EMPTY_OBJ);
+            setCellFormulas(activeSheet.cellFormulas || EMPTY_OBJ);
+            setColWidths(activeSheet.colWidths || EMPTY_OBJ);
+            setRowHeights(activeSheet.rowHeights || EMPTY_OBJ);
+        }
         setStatusMessage("Modification rétablie");
         setTimeout(() => setStatusMessage(''), 2000);
     };

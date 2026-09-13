@@ -1228,6 +1228,27 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
     };
 
+    const commitCellEdit = () => {
+        if (!editingCell) return;
+        let finalVal = cellInputValue;
+        if (typeof finalVal === 'string' && finalVal.trim().startsWith('=')) {
+            try {
+                // Nettoyage de l'expression mathématique pour éviter toute injection
+                const expression = finalVal.substring(1).replace(/[^0-9+\-*/().]/g, '');
+                if (expression) {
+                    const result = new Function(`return ${expression}`)();
+                    if (!isNaN(result) && result !== undefined) {
+                        finalVal = String(result);
+                        handleCellValueChange(finalVal);
+                    }
+                }
+            } catch (e) {
+                // En cas d'erreur de parsing (ex: formule complexe Excel non supportée dans ce mode basique), on laisse tel quel.
+            }
+        }
+        setEditingCell(null);
+    };
+
     const handleInsertFormula = (funcName) => {
         const rangeStr = minR === maxR && minC === maxC
             ? `${getColLabel(minC)}${minR + 1}`
@@ -2071,8 +2092,13 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                                                 type="text"
                                                                 value={cellInputValue}
                                                                 onChange={(e) => handleCellValueChange(e.target.value)}
-                                                                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Tab') setEditingCell(null); }}
-                                                                onBlur={() => setEditingCell(null)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter' || e.key === 'Tab') {
+                                                                        e.preventDefault();
+                                                                        commitCellEdit();
+                                                                    }
+                                                                }}
+                                                                onBlur={() => commitCellEdit()}
                                                                 style={{ width: '100%', height: '100%', padding: '4px 8px', border: 'none', outline: '2px solid #02006c', background: '#FFF' }}
                                                             />
                                                         ) : cellValue}

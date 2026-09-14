@@ -65,7 +65,7 @@ export default function UserProfileView({ currentUser, userPhoto, setUserPhoto, 
         <div style={{
             width: '100%',
             minHeight: 'calc(100vh - 65px)',
-            background: '#F8FAFC',
+            background: '#FFFFFF',
             padding: '3rem 2rem',
             display: 'flex',
             justifyContent: 'center'
@@ -73,19 +73,13 @@ export default function UserProfileView({ currentUser, userPhoto, setUserPhoto, 
             <div style={{
                 width: '100%',
                 maxWidth: '900px',
-                background: '#FFFFFF',
-                borderRadius: '20px',
-                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.03)',
-                border: '1px solid #F1F5F9',
-                overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column'
             }}>
 
                 {/* Clean Header Area */}
                 <div style={{
-                    padding: '2.5rem',
-                    background: '#FFFFFF',
+                    padding: '0 0 2.5rem 0',
                     borderBottom: '1px solid #F1F5F9',
                     display: 'flex',
                     alignItems: 'center',
@@ -157,7 +151,7 @@ export default function UserProfileView({ currentUser, userPhoto, setUserPhoto, 
                     </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem', padding: '2.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem', padding: '2.5rem 0' }}>
 
                     {/* Personal Info Form */}
                     <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>

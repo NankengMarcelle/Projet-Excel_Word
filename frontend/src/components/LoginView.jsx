@@ -14,12 +14,12 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
         e.preventDefault();
         if (isSignUp) {
             if (showToast) {
-                showToast("Compte agent créé avec succès ! Vous pouvez vous connecter.", "success");
+                showToast(lang === 'fr' ? "Compte agent créé avec succès ! Bienvenue sur le portail." : "Agent account successfully created! Welcome.", "success");
             }
-            setIsSignUp(false);
+            onLoginSuccess();
         } else {
             if (showToast) {
-                showToast("Connexion réussie ! Bienvenue sur le Portail ANTIC.", "success");
+                showToast(lang === 'fr' ? "Connexion réussie ! Bienvenue sur le Portail ANTIC." : "Login successful! Welcome to ANTIC Portal.", "success");
             }
             onLoginSuccess();
         }

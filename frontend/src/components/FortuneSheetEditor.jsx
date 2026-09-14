@@ -447,12 +447,12 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         const handleMouseMove = (e) => {
             if (resizingCol) {
                 const diff = e.clientX - resizingCol.startX;
-                const newW = Math.max(40, resizingCol.startWidth + diff);
+                const newW = Math.max(5, resizingCol.startWidth + diff);
                 setColWidths(prev => ({ ...prev, [resizingCol.cIdx]: newW }));
             }
             if (resizingRow) {
                 const diff = e.clientY - resizingRow.startY;
-                const newH = Math.max(20, resizingRow.startHeight + diff);
+                const newH = Math.max(5, resizingRow.startHeight + diff);
                 setRowHeights(prev => ({ ...prev, [resizingRow.rIdx]: newH }));
             }
         };
@@ -2156,7 +2156,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                     <Equal size={16} />
                 </button>
 
-                <input type="text" value={cellInputValue} onChange={(e) => handleCellValueChange(e.target.value)} placeholder="Éditer la cellule active..." style={{ flex: 1, height: '30px', padding: '0 0.75rem', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '0.825rem', outline: 'none', fontFamily: fontFamily }} />
+                <input type="text" value={cellInputValue} onChange={(e) => handleCellValueChange(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') commitCellEdit(); }} placeholder="Éditer la cellule active..." style={{ flex: 1, height: '30px', padding: '0 0.75rem', border: '1px solid #CBD5E1', borderRadius: '6px', fontSize: '0.825rem', outline: 'none', fontFamily: fontFamily }} />
             </div>
 
             {/* Grid Table Canvas */}

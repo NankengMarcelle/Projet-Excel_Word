@@ -306,14 +306,10 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
                                 onClick={() => setIsSignUp(true)}
                                 style={{ background: 'none', border: 'none', color: '#FFFFFF', fontWeight: 800, textDecoration: 'underline', cursor: 'pointer' }}
                             >
-                                {lang === 'fr' ? "S'inscrire / Créer un compte" : "Sign Up / Create Account"}
+                                {lang === 'fr' ? "S'inscrire" : "Sign Up"}
                             </button>
                         </span>
                     )}
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.7rem', color: '#E0E7FF', marginTop: '1.5rem' }}>
-                    <ShieldCheck size={14} color="#FCD116" /> {lang === 'fr' ? "Accès réservé au personnel accrédité ANTIC (Cameroun)" : "Restricted access for accredited ANTIC personnel (Cameroon)"}
                 </div>
 
             </div>

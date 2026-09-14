@@ -2312,7 +2312,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                         const customW = isHidden ? '6px' : (colWidths[cIdx] ? `${colWidths[cIdx]}px` : '90px');
                                         return (
                                             <th key={cIdx} style={{ padding: isHidden ? 0 : '6px 12px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: 700, minWidth: customW, width: customW, maxWidth: customW, fontSize: '0.75rem', position: 'relative', userSelect: 'none', overflow: 'hidden', textOverflow: 'ellipsis', background: isHidden ? '#CBD5E1' : undefined }}>
-                                                {!isHidden && getColLabel(cIdx)}
+                                                {!isHidden && (!colWidths[cIdx] || colWidths[cIdx] > 18) && getColLabel(cIdx)}
                                                 <div
                                                     onMouseDown={(e) => handleColResizeStart(e, cIdx)}
                                                     title="Glisser pour redimensionner la largeur"
@@ -2342,7 +2342,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                     return (
                                         <tr key={rIdx} style={{ height: customH, minHeight: customH, maxHeight: customH }}>
                                             <td style={{ padding: isHiddenRow ? 0 : '4px 6px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: 700, color: '#64748B', background: isHiddenRow ? '#CBD5E1' : '#F8FAFC', fontSize: '0.75rem', position: 'relative', userSelect: 'none', overflow: 'hidden' }}>
-                                                {!isHiddenRow && (rIdx + 1)}
+                                                {!isHiddenRow && (!rowHeights[rIdx] || rowHeights[rIdx] > 18) && (rIdx + 1)}
                                                 <div
                                                     onMouseDown={(e) => handleRowResizeStart(e, rIdx)}
                                                     title="Glisser pour redimensionner la hauteur"

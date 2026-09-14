@@ -3,6 +3,17 @@ services:
     name: sheetflow-backend
     runtime: python
     plan: free
+    # This file lives at the repo root (required for Render's Blueprint auto-detection when
+    # connecting the repo) even though the actual backend code lives under backend/ — one repo,
+    # shared with the frontend, per Marcelle's Project_API branch. rootDir scopes the build/
+    # start commands below to that subfolder.
+    rootDir: backend
+    # Without this, any push touching frontend/ (unrelated UI work) would also trigger a
+    # rebuild + restart of this live API — annoying at best while someone's mid-testing
+    # against it, and a waste of the free plan's build minutes at worst.
+    buildFilter:
+      paths:
+        - backend/**
     buildCommand: "pip install -r requirements.txt"
     # Migrations run on every start — idempotent (alembic no-ops once already at head), and
     # simplest reliable way to keep a small testing deployment's schema in sync without a

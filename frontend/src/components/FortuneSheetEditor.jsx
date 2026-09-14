@@ -1518,17 +1518,20 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
     };
 
     const commitCellEdit = () => {
-        if (!editingCell) return;
+        const targetR = editingCell ? editingCell.r : selectionRange?.start?.r;
+        const targetC = editingCell ? editingCell.c : selectionRange?.start?.c;
+        if (targetR === undefined || targetC === undefined) return;
+
         let rawVal = cellInputValue;
         let newFormulas = { ...cellFormulas };
         let hasFormulaUpdate = false;
 
         if (typeof rawVal === 'string' && rawVal.trim().startsWith('=')) {
-            newFormulas[`${editingCell.r}_${editingCell.c}`] = rawVal;
+            newFormulas[`${targetR}_${targetC}`] = rawVal;
             hasFormulaUpdate = true;
         } else {
-            if (newFormulas[`${editingCell.r}_${editingCell.c}`]) {
-                delete newFormulas[`${editingCell.r}_${editingCell.c}`];
+            if (newFormulas[`${targetR}_${targetC}`]) {
+                delete newFormulas[`${targetR}_${targetC}`];
                 hasFormulaUpdate = true;
             }
         }

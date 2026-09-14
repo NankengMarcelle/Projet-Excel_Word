@@ -1,0 +1,34 @@
+services:
+  - type: web
+    name: sheetflow-backend
+    runtime: python
+    plan: free
+    buildCommand: "pip install -r requirements.txt"
+    # Migrations run on every start — idempotent (alembic no-ops once already at head), and
+    # simplest reliable way to keep a small testing deployment's schema in sync without a
+    # separate manual step.
+    startCommand: "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.6"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sheetflow-db
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "480"
+      - key: STORAGE_ROOT
+        value: "storage"
+      - key: CORS_ORIGINS
+        # Add the frontend's actual origin(s) here (comma-separated) once known — e.g. a
+        # colleague's local Vite dev server is still http://localhost:5173 from her own
+        # browser's point of view, so the default below already covers that common case.
+        value: "http://localhost:5173,http://localhost:5174"
+
+databases:
+  - name: sheetflow-db
+    plan: free
+    databaseName: sheetflow
+    user: sheetflow_app

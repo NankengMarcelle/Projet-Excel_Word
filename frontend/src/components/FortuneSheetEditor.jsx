@@ -1267,7 +1267,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         let expression = formulaStr.substring(1).toUpperCase();
 
         // Handle common aggregations: SUM(A1:B2)
-        const funcRegex = /\b(SUM|SOMME|AVERAGE|MOYENNE|MAX|MIN|COUNT|NB)\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/g;
+        const funcRegex = /\b(SUM|SOMME|AVERAGE|MOYENNE|MAX|MIN|COUNT|NB|PRODUCT|PRODUIT)\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/g;
         expression = expression.replace(funcRegex, (match, func, startCol, startRow, endCol, endRow) => {
             const sc = getColIndexFromLabel(startCol);
             const sr = parseInt(startRow, 10) - 1;
@@ -1288,12 +1288,14 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             if (func === 'MAX') res = Math.max(...values);
             if (func === 'MIN') res = Math.min(...values);
             if (func === 'COUNT' || func === 'NB') res = values.length;
+            if (func === 'PRODUCT' || func === 'PRODUIT') res = values.reduce((a, b) => a * b, 1);
             return res.toString();
         });
 
         // Intercept function like SUM(A1, B1) specifically 
-        const funcCommaRegex = /\b(SUM|SOMME)\(([A-Z]+\d+),([A-Z]+\d+)\)/g;
+        const funcCommaRegex = /\b(SUM|SOMME|PRODUCT|PRODUIT)\(([A-Z]+\d+),([A-Z]+\d+)\)/g;
         expression = expression.replace(funcCommaRegex, (match, func, cell1, cell2) => {
+            if (func === 'PRODUCT' || func === 'PRODUIT') return cell1 + '*' + cell2;
             return cell1 + '+' + cell2;
         });
 
@@ -1307,8 +1309,12 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             return isNaN(val) ? '0' : val.toString();
         });
 
+        // Translate specific Excel operators to JS operators
+        expression = expression.replace(/\^/g, '**'); // Puissance
+        expression = expression.replace(/%/g, '/100'); // Pourcentage
+
         // Clean strictly numeric processing space before evaluation
-        expression = expression.replace(/[^0-9+\-*/().]/g, '');
+        expression = expression.replace(/[^0-9+\-*/(). ]/g, '');
 
         try {
             if (expression) {

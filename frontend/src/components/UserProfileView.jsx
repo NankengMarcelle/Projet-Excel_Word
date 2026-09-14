@@ -204,21 +204,6 @@ export default function UserProfileView({ currentUser, userPhoto, setUserPhoto, 
                             />
                         </div>
 
-                        <div>
-                            <label style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', display: 'block', marginBottom: '6px' }}>
-                                {lang === 'fr' ? "Matricule Agent" : "Agent ID"}
-                            </label>
-                            <input
-                                type="text"
-                                readOnly
-                                value={profileData.matricule}
-                                style={{
-                                    width: '100%', padding: '0.65rem 1rem', borderRadius: '10px',
-                                    border: '1px solid #E2E8F0', background: '#F1F5F9', color: '#94A3B8', fontSize: '0.85rem'
-                                }}
-                            />
-                        </div>
-
                         <button
                             type="submit"
                             style={{

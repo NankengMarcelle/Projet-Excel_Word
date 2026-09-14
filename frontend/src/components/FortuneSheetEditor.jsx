@@ -694,9 +694,14 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             merges: newMerges
         };
 
-        const updatedSheets = [...currentSheets, newChildSheet];
+        const parentIndex = currentSheets.findIndex(s => s.name === parentSheetName);
+        const insertIndex = parentIndex !== -1 ? parentIndex + 1 : currentSheets.length;
+
+        const updatedSheets = [...currentSheets];
+        updatedSheets.splice(insertIndex, 0, newChildSheet);
+
         setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
-        setActiveSheetIndex(updatedSheets.length - 1);
+        setActiveSheetIndex(insertIndex);
         setStatusMessage(`Feuille Enfant "${childSheetName}" créée (styles préservés).`);
         setTimeout(() => setStatusMessage(''), 4000);
     };

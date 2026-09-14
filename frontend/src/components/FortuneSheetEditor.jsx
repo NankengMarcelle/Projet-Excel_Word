@@ -2110,7 +2110,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 {/* Merge / Unmerge Cells Button */}
                 <CustomTooltip text="Fusionner / Défusionner les cellules sélectionnées">
                     <button
-                        onClick={handleToggleMergeSelection}
+                        onClick={() => handleToggleMergeSelection()}
                         style={{
                             padding: '5px 8px',
                             borderRadius: '6px',

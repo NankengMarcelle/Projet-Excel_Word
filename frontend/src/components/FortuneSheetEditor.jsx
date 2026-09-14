@@ -277,6 +277,12 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             return s;
         });
         setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
+
+        setSelectionRange({
+            start: { r: fillMinR, c: fillMinC },
+            end: { r: fillMaxR, c: fillMaxC }
+        });
+
         setStatusMessage(`Cellules étirées et remplies avec succès.`);
         setTimeout(() => setStatusMessage(''), 3000);
     };

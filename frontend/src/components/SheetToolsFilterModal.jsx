@@ -20,6 +20,8 @@ export default function SheetToolsFilterModal({
     const [filterOperator, setFilterOperator] = useState('equals');
     const [filterValue, setFilterValue] = useState('');
     const [childSheetName, setChildSheetName] = useState('');
+    const [headerStartRow, setHeaderStartRow] = useState(1);
+    const [headerEndRow, setHeaderEndRow] = useState(1);
     const [errorMsg, setErrorMsg] = useState('');
 
     const [isParentDropdownOpen, setIsParentDropdownOpen] = useState(false);
@@ -176,7 +178,9 @@ export default function SheetToolsFilterModal({
             colLabel: getColName(targetColIndex),
             filterOperator,
             filterValue: filterValue.trim(),
-            selectedCols
+            selectedCols,
+            headerStartRow: Math.max(0, Number(headerStartRow) - 1),
+            headerEndRow: Math.max(0, Number(headerEndRow) - 1)
         });
         onClose();
     };
@@ -492,9 +496,56 @@ export default function SheetToolsFilterModal({
                             </div>
                         </div>
 
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            <div>
+                                <label style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1E293B', display: 'block', marginBottom: '4px' }}>
+                                    6. En-tête : Ligne de début
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={headerStartRow}
+                                    onChange={(e) => setHeaderStartRow(e.target.value)}
+                                    disabled={isCurrentSheetChild}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        borderRadius: '10px',
+                                        border: '1px solid #CBD5E1',
+                                        background: '#F8FAFC',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 700,
+                                        color: '#02006c'
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <label style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1E293B', display: 'block', marginBottom: '4px' }}>
+                                    7. En-tête : Ligne de fin
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    value={headerEndRow}
+                                    onChange={(e) => setHeaderEndRow(e.target.value)}
+                                    disabled={isCurrentSheetChild}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        borderRadius: '10px',
+                                        border: '1px solid #CBD5E1',
+                                        background: '#F8FAFC',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 700,
+                                        color: '#02006c'
+                                    }}
+                                />
+                            </div>
+                        </div>
+
                         <div>
                             <label style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1E293B', display: 'block', marginBottom: '4px' }}>
-                                6. Nom de la Feuille Enfant à générer :
+                                8. Nom de la Feuille Enfant à générer :
                             </label>
                             <input
                                 type="text"

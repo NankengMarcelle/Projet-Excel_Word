@@ -646,12 +646,16 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
     const [isSheetToolsModalOpen, setIsSheetToolsModalOpen] = useState(false);
 
     const calculateProjectedSheet = (parentSheet, filterRule, childSheetName = null) => {
-        const { colIndex, filterOperator, filterValue, selectedCols } = filterRule;
+        const { colIndex, filterOperator, filterValue, selectedCols, headerStartRow = 0, headerEndRow = 0 } = filterRule;
         const parentData = parentSheet.data || [];
-        const rawHeaderRow = parentData[0] || [];
+
+        const projectedHeaderRows = [];
+        for (let r = headerStartRow; r <= headerEndRow; r++) {
+            projectedHeaderRows.push(parentData[r] || []);
+        }
 
         const filteredRawRowsWithIndex = [];
-        for (let r = 1; r < parentData.length; r++) {
+        for (let r = headerEndRow + 1; r < parentData.length; r++) {
             const row = parentData[r];
             const cellVal = String(row[colIndex] || '').trim().toLowerCase();
             const targetVal = String(filterValue || '').trim().toLowerCase();
@@ -682,31 +686,37 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             }
         });
 
-        const newRowHeights = {};
-        if (parentSheet.rowHeights?.[0]) newRowHeights[0] = parentSheet.rowHeights[0];
-        filteredRawRowsWithIndex.forEach((item, newRowCounter) => {
-            if (parentSheet.rowHeights?.[item.originalR]) {
-                newRowHeights[newRowCounter + 1] = parentSheet.rowHeights[item.originalR];
-            }
-        });
+        const finalizedHeaderRows = projectedHeaderRows.map(row => colIndicesToKeep.map(cIdx => row[cIdx] || ''));
+        const finalizedDataRows = filteredRawRowsWithIndex.map(item => colIndicesToKeep.map(cIdx => item.row[cIdx] || ''));
 
+
+        const newRowHeights = {};
         const newCellStyles = {};
         const newCellFormulas = {};
         const oldStyles = parentSheet.cellStyles || {};
         const oldFormulas = parentSheet.cellFormulas || {};
 
-        colIndicesToKeep.forEach((oldCIdx, newCIdx) => {
-            if (oldStyles[`0_${oldCIdx}`]) newCellStyles[`0_${newCIdx}`] = JSON.parse(JSON.stringify(oldStyles[`0_${oldCIdx}`]));
-            if (oldFormulas[`0_${oldCIdx}`]) newCellFormulas[`0_${newCIdx}`] = oldFormulas[`0_${oldCIdx}`];
-        });
-        filteredRawRowsWithIndex.forEach((item, newRowCounter) => {
-            const newR = newRowCounter + 1;
+        let outRow = 0;
+        for (let r = headerStartRow; r <= headerEndRow; r++) {
+            if (parentSheet.rowHeights?.[r]) newRowHeights[outRow] = parentSheet.rowHeights[r];
+            colIndicesToKeep.forEach((oldCIdx, newCIdx) => {
+                if (oldStyles[`${r}_${oldCIdx}`]) newCellStyles[`${outRow}_${newCIdx}`] = JSON.parse(JSON.stringify(oldStyles[`${r}_${oldCIdx}`]));
+                if (oldFormulas[`${r}_${oldCIdx}`]) newCellFormulas[`${outRow}_${newCIdx}`] = oldFormulas[`${r}_${oldCIdx}`];
+            });
+            outRow++;
+        }
+
+        const baseFilteredRowIdx = outRow;
+        filteredRawRowsWithIndex.forEach((item, idx) => {
+            const currentMappedR = baseFilteredRowIdx + idx;
+            if (parentSheet.rowHeights?.[item.originalR]) newRowHeights[currentMappedR] = parentSheet.rowHeights[item.originalR];
+
             colIndicesToKeep.forEach((oldCIdx, newCIdx) => {
                 if (oldStyles[`${item.originalR}_${oldCIdx}`]) {
-                    newCellStyles[`${newR}_${newCIdx}`] = JSON.parse(JSON.stringify(oldStyles[`${item.originalR}_${oldCIdx}`]));
+                    newCellStyles[`${currentMappedR}_${newCIdx}`] = JSON.parse(JSON.stringify(oldStyles[`${item.originalR}_${oldCIdx}`]));
                 }
                 if (oldFormulas[`${item.originalR}_${oldCIdx}`]) {
-                    newCellFormulas[`${newR}_${newCIdx}`] = oldFormulas[`${item.originalR}_${oldCIdx}`];
+                    newCellFormulas[`${currentMappedR}_${newCIdx}`] = oldFormulas[`${item.originalR}_${oldCIdx}`];
                 }
             });
         });
@@ -728,14 +738,13 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 }
             }
 
-            let newStartR = -1;
-            let newEndR = -1;
-            if (sR === 0) newStartR = 0;
-            if (eR === 0) newEndR = 0;
-
-            if (eR > 0) {
+            if (sR >= headerStartRow && eR <= headerEndRow) {
+                newStartR = sR - headerStartRow;
+                newEndR = eR - headerStartRow;
+            }
+            else if (sR > headerEndRow) {
                 const keptRowsInMerge = filteredRawRowsWithIndex
-                    .map((item, idx) => ({ ...item, newR: idx + 1 }))
+                    .map((item, idx) => ({ ...item, newR: idx + baseFilteredRowIdx }))
                     .filter(item => item.originalR >= sR && item.originalR <= eR);
 
                 if (keptRowsInMerge.length > 0) {
@@ -743,8 +752,13 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                     if (newEndR === -1 || keptRowsInMerge[keptRowsInMerge.length - 1].newR > newEndR) newEndR = keptRowsInMerge[keptRowsInMerge.length - 1].newR;
                 }
             }
-
-            if (sR === 0 && eR > 0 && newEndR !== -1) newStartR = 0;
+            else if (sR <= headerEndRow && eR > headerEndRow) {
+                newStartR = sR - headerStartRow;
+                const keptRowsInMerge = filteredRawRowsWithIndex
+                    .map((item, idx) => ({ ...item, newR: idx + baseFilteredRowIdx }))
+                    .filter(item => item.originalR >= sR && item.originalR <= eR);
+                newEndR = keptRowsInMerge.length > 0 ? keptRowsInMerge[keptRowsInMerge.length - 1].newR : (headerEndRow - headerStartRow);
+            }
 
             if (newStartC !== -1 && newStartR !== -1 && (newStartC < newEndC || newStartR < newEndR)) {
                 newMerges.push({
@@ -755,11 +769,8 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             }
         });
 
-        const projectedHeaderRow = colIndicesToKeep.map(cIdx => rawHeaderRow[cIdx] || '');
-        const projectedRows = filteredRawRowsWithIndex.map(item => colIndicesToKeep.map(cIdx => item.row[cIdx] || ''));
-
-        const emptyRowsNeeded = Math.max(0, 49 - projectedRows.length);
-        const paddedRows = [projectedHeaderRow, ...projectedRows];
+        const paddedRows = [...finalizedHeaderRows, ...finalizedDataRows];
+        const emptyRowsNeeded = Math.max(0, 49 - paddedRows.length);
         for (let i = 0; i < emptyRowsNeeded; i++) {
             paddedRows.push(Array(colIndicesToKeep.length).fill(''));
         }

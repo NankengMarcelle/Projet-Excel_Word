@@ -656,7 +656,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
 
         const filteredRawRowsWithIndex = [];
         for (let r = headerEndRow + 1; r < parentData.length; r++) {
-            const row = parentData[r];
+            const row = parentData[r] || [];
             const cellVal = String(row[colIndex] || '').trim().toLowerCase();
             const targetVal = String(filterValue || '').trim().toLowerCase();
             let keep = false;

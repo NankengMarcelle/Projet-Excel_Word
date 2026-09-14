@@ -789,12 +789,12 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         };
     };
 
-    const handleCreateChildSheet = ({ parentSheetName, childSheetName, colIndex, filterOperator, filterValue, selectedCols }) => {
+    const handleCreateChildSheet = ({ parentSheetName, childSheetName, colIndex, filterOperator, filterValue, selectedCols, headerStartRow, headerEndRow }) => {
         const currentSheets = currentWorkbook?.sheets || [];
         const parentSheet = currentSheets.find(s => s.name === parentSheetName);
         if (!parentSheet) return;
 
-        const newChildSheet = calculateProjectedSheet(parentSheet, { colIndex, filterOperator, filterValue, selectedCols }, childSheetName);
+        const newChildSheet = calculateProjectedSheet(parentSheet, { colIndex, filterOperator, filterValue, selectedCols, headerStartRow, headerEndRow }, childSheetName);
 
         const parentIndex = currentSheets.findIndex(s => s.name === parentSheetName);
         const insertIndex = parentIndex !== -1 ? parentIndex + 1 : currentSheets.length;

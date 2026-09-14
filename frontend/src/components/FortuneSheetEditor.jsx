@@ -1254,13 +1254,101 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         setCellInputValue(cellFormulas[`${r}_${c}`] || sheetData[r]?.[c] || '');
     };
 
+    const getColIndexFromLabel = (label) => {
+        let idx = 0;
+        for (let i = 0; i < label.length; i++) {
+            idx = idx * 26 + (label.charCodeAt(i) - 64);
+        }
+        return idx - 1;
+    };
+
+    const resolveFormula = (formulaStr, currentData) => {
+        if (!formulaStr || !formulaStr.toString().startsWith('=')) return formulaStr;
+        let expression = formulaStr.substring(1).toUpperCase();
+
+        // Handle common aggregations: SUM(A1:B2)
+        const funcRegex = /\b(SUM|SOMME|AVERAGE|MOYENNE|MAX|MIN|COUNT|NB)\(([A-Z]+)(\d+):([A-Z]+)(\d+)\)/g;
+        expression = expression.replace(funcRegex, (match, func, startCol, startRow, endCol, endRow) => {
+            const sc = getColIndexFromLabel(startCol);
+            const sr = parseInt(startRow, 10) - 1;
+            const ec = getColIndexFromLabel(endCol);
+            const er = parseInt(endRow, 10) - 1;
+
+            let values = [];
+            for (let r = Math.min(sr, er); r <= Math.max(sr, er); r++) {
+                for (let c = Math.min(sc, ec); c <= Math.max(sc, ec); c++) {
+                    const val = parseFloat(currentData[r]?.[c]);
+                    if (!isNaN(val)) values.push(val);
+                }
+            }
+            if (values.length === 0) return '0';
+            let res = 0;
+            if (func === 'SUM' || func === 'SOMME') res = values.reduce((a, b) => a + b, 0);
+            if (func === 'AVERAGE' || func === 'MOYENNE') res = values.reduce((a, b) => a + b, 0) / values.length;
+            if (func === 'MAX') res = Math.max(...values);
+            if (func === 'MIN') res = Math.min(...values);
+            if (func === 'COUNT' || func === 'NB') res = values.length;
+            return res.toString();
+        });
+
+        // Intercept function like SUM(A1, B1) specifically 
+        const funcCommaRegex = /\b(SUM|SOMME)\(([A-Z]+\d+),([A-Z]+\d+)\)/g;
+        expression = expression.replace(funcCommaRegex, (match, func, cell1, cell2) => {
+            return cell1 + '+' + cell2;
+        });
+
+        // Resolve single cell references: A1, B12
+        const refRegex = /\b([A-Z]+)(\d+)\b/g;
+        expression = expression.replace(refRegex, (match, colStr, rowStr) => {
+            const c = getColIndexFromLabel(colStr);
+            const r = parseInt(rowStr, 10) - 1;
+            const rawRaw = currentData[r]?.[c];
+            const val = parseFloat(rawRaw);
+            return isNaN(val) ? '0' : val.toString();
+        });
+
+        // Clean strictly numeric processing space before evaluation
+        expression = expression.replace(/[^0-9+\-*/().]/g, '');
+
+        try {
+            if (expression) {
+                const result = new Function(`return ${expression}`)();
+                if (!isNaN(result) && result !== undefined && result !== null && result !== Infinity) {
+                    return String(result);
+                }
+            }
+            return formulaStr;
+        } catch (e) {
+            return formulaStr;
+        }
+    };
+
+    const recalcAllFormulas = (dataToUpdate, currentFormulas) => {
+        // Multi-pass dependency recalculation trick (2 passes for dependencies)
+        for (let pass = 0; pass < 2; pass++) {
+            Object.entries(currentFormulas).forEach(([key, formulaStr]) => {
+                const [rStr, cStr] = key.split('_');
+                const r = parseInt(rStr, 10);
+                const c = parseInt(cStr, 10);
+                if (dataToUpdate[r] && dataToUpdate[r][c] !== undefined) {
+                    dataToUpdate[r][c] = resolveFormula(formulaStr, dataToUpdate);
+                }
+            });
+        }
+        return dataToUpdate;
+    };
+
     const handleCellValueChange = (rawVal, computedVal = rawVal, formOverrides = null) => {
         setCellInputValue(rawVal);
         const r = selectionRange.start.r;
         const c = selectionRange.start.c;
-        const updatedData = [...sheetData.map(row => [...row])];
+        let updatedData = [...sheetData.map(row => [...row])];
         if (!updatedData[r]) updatedData[r] = [];
+
         updatedData[r][c] = computedVal;
+
+        let activeFormulas = formOverrides || cellFormulas;
+        updatedData = recalcAllFormulas(updatedData, activeFormulas);
 
         const updatedSheets = [...sheets];
         let sheetUpdate = { ...currentSheet, data: updatedData };
@@ -1275,24 +1363,12 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
     const commitCellEdit = () => {
         if (!editingCell) return;
         let rawVal = cellInputValue;
-        let computedVal = rawVal;
         let newFormulas = { ...cellFormulas };
         let hasFormulaUpdate = false;
 
         if (typeof rawVal === 'string' && rawVal.trim().startsWith('=')) {
             newFormulas[`${editingCell.r}_${editingCell.c}`] = rawVal;
             hasFormulaUpdate = true;
-            try {
-                const expression = rawVal.substring(1).replace(/[^0-9+\-*/().]/g, '');
-                if (expression) {
-                    const result = new Function(`return ${expression}`)();
-                    if (!isNaN(result) && result !== undefined) {
-                        computedVal = String(result);
-                    }
-                }
-            } catch (e) {
-                // Keep rawVal as computedVal if it fails to evaluate
-            }
         } else {
             if (newFormulas[`${editingCell.r}_${editingCell.c}`]) {
                 delete newFormulas[`${editingCell.r}_${editingCell.c}`];
@@ -1300,7 +1376,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             }
         }
 
-        handleCellValueChange(rawVal, computedVal, hasFormulaUpdate ? newFormulas : null);
+        handleCellValueChange(rawVal, rawVal, hasFormulaUpdate ? newFormulas : null);
         setEditingCell(null);
     };
 

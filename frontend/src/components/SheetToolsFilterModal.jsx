@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Filter, AlertTriangle, CheckSquare, Square, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Filter, AlertTriangle, CheckSquare, Square, ChevronDown, ListTree } from 'lucide-react';
 
 export default function SheetToolsFilterModal({
     workbook,
@@ -16,18 +16,12 @@ export default function SheetToolsFilterModal({
         isCurrentSheetChild ? '' : activeSheetIndex
     );
 
-    // Default to first 15 columns selected
-    const [selectedCols, setSelectedCols] = useState(
-        Array.from({ length: 15 }, (_, i) => i)
-    );
-
     const [targetColIndex, setTargetColIndex] = useState(0);
     const [filterOperator, setFilterOperator] = useState('equals');
     const [filterValue, setFilterValue] = useState('');
     const [childSheetName, setChildSheetName] = useState('');
     const [errorMsg, setErrorMsg] = useState('');
 
-    // Dropdown visibility states
     const [isParentDropdownOpen, setIsParentDropdownOpen] = useState(false);
     const [isColDropdownOpen, setIsColDropdownOpen] = useState(false);
     const [isOperatorDropdownOpen, setIsOperatorDropdownOpen] = useState(false);
@@ -46,41 +40,120 @@ export default function SheetToolsFilterModal({
     const parentData = parentSheet?.data || [];
     const firstRowHeaders = parentData[0] || [];
 
-    // Helper to get column names
-    const getColName = (colIdx) => {
+    // Detect exact used columns length to avoid suggesting empty spaces.
+    let dataEndCol = 2; // minimum 3 cols
+    parentData.forEach(row => {
+        for (let i = row.length - 1; i >= 0; i--) {
+            if (row[i] && String(row[i]).trim() !== '') {
+                dataEndCol = Math.max(dataEndCol, i);
+                break;
+            }
+        }
+    });
+
+    const [selectedCols, setSelectedCols] = useState([]);
+
+    // Automatically select only used columns on load
+    useEffect(() => {
+        setSelectedCols(Array.from({ length: dataEndCol + 1 }, (_, i) => i));
+    }, [dataEndCol, selectedParentIndex]);
+
+    const getColLetter = (idx) => {
+        let label = '';
+        let temp = idx;
+        while (temp >= 0) {
+            label = String.fromCharCode((temp % 26) + 65) + label;
+            temp = Math.floor(temp / 26) - 1;
+        }
+        return label;
+    };
+
+    const getColName = (colIdx, short = false) => {
         const headerVal = firstRowHeaders[colIdx];
-        const colLetter = String.fromCharCode(65 + colIdx);
+        const colLetter = getColLetter(colIdx);
+        if (short && headerVal && String(headerVal).trim() !== '') return String(headerVal);
         return headerVal && String(headerVal).trim() !== ''
             ? `Col ${colLetter} (${headerVal})`
             : `Colonne ${colLetter}`;
     };
 
-    const toggleCol = (cIdx) => {
-        if (selectedCols.includes(cIdx)) {
-            if (selectedCols.length <= 1) {
-                setErrorMsg("Vous devez conserver au moins une colonne dans la feuille enfant.");
-                return;
+    // Calculate hierarchical grouping using merges
+    const merges = parentSheet.merges || [];
+    const groupedColumns = [];
+    const processedCols = new Set();
+
+    merges.forEach(m => {
+        let sR = m.startRow !== undefined ? m.startRow : m.s?.r;
+        let eR = m.endRow !== undefined ? m.endRow : m.e?.r;
+        let sC = m.startCol !== undefined ? m.startCol : m.s?.c;
+        let eC = m.endCol !== undefined ? m.endCol : m.e?.c;
+
+        if (sR === 0 && eC > sC) {
+            const groupName = getColName(sC, true) || `Groupe Col ${getColLetter(sC)}-${getColLetter(eC)}`;
+            const children = [];
+            for (let c = sC; c <= eC; c++) {
+                if (c <= dataEndCol) {
+                    children.push(c);
+                    processedCols.add(c);
+                }
             }
-            setSelectedCols(selectedCols.filter(i => i !== cIdx));
-        } else {
-            setSelectedCols([...selectedCols, cIdx].sort((a, b) => a - b));
+            if (children.length > 0) groupedColumns.push({ isGroup: true, id: `g_${sC}_${eC}`, label: groupName, children });
         }
+    });
+
+    for (let c = 0; c <= dataEndCol; c++) {
+        if (!processedCols.has(c)) {
+            groupedColumns.push({ isGroup: false, id: c, label: getColName(c) });
+        }
+    }
+
+    // Sort array so groups show physically where they belong (by lowest col idx)
+    groupedColumns.sort((a, b) => {
+        const aVal = a.isGroup ? a.children[0] : a.id;
+        const bVal = b.isGroup ? b.children[0] : b.id;
+        return aVal - bVal;
+    });
+
+    const toggleCol = (cIdx) => {
+        setSelectedCols(prev => {
+            if (prev.includes(cIdx)) {
+                return prev.filter(i => i !== cIdx);
+            } else {
+                return [...prev, cIdx].sort((a, b) => a - b);
+            }
+        });
+        setErrorMsg('');
+    };
+
+    const toggleGroup = (childrenIds) => {
+        setSelectedCols(prev => {
+            const allSelected = childrenIds.every(c => prev.includes(c));
+            if (allSelected) {
+                return prev.filter(c => !childrenIds.includes(c));
+            } else {
+                const next = [...prev];
+                childrenIds.forEach(c => {
+                    if (!next.includes(c)) next.push(c);
+                });
+                return next.sort((a, b) => a - b);
+            }
+        });
         setErrorMsg('');
     };
 
     const selectAllCols = () => {
-        setSelectedCols(Array.from({ length: 15 }, (_, i) => i));
+        setSelectedCols(Array.from({ length: dataEndCol + 1 }, (_, i) => i));
         setErrorMsg('');
     };
 
     const deselectAllCols = () => {
-        setSelectedCols([0]);
+        setSelectedCols([]);
         setErrorMsg('');
     };
 
     const handleCreate = () => {
         if (isCurrentSheetChild || parentSheet?.type === 'child') {
-            setErrorMsg("Action interdite : Impossible d'appliquer un filtre sur une feuille enfant. Le filtrage est réservé aux Feuilles Parents.");
+            setErrorMsg("Action interdite : Impossible d'appliquer un filtre sur une feuille enfant.");
             return;
         }
 
@@ -113,7 +186,7 @@ export default function SheetToolsFilterModal({
             position: 'fixed',
             top: '110px',
             right: '24px',
-            width: '540px',
+            width: '600px',
             maxHeight: 'calc(100vh - 140px)',
             zIndex: 1000,
             fontFamily: 'Inter, system-ui, sans-serif'
@@ -128,7 +201,6 @@ export default function SheetToolsFilterModal({
                 display: 'flex',
                 flexDirection: 'column'
             }}>
-                {/* Header */}
                 <div style={{
                     padding: '14px 20px',
                     background: '#02006c',
@@ -154,7 +226,7 @@ export default function SheetToolsFilterModal({
                                 SheetTools • Générer Feuille Enfant
                             </h3>
                             <span style={{ fontSize: '0.7rem', color: '#E0E7FF' }}>
-                                SolutionExcel_Word / SheetTools
+                                Architecture Hierarchique
                             </span>
                         </div>
                     </div>
@@ -163,10 +235,8 @@ export default function SheetToolsFilterModal({
                     </button>
                 </div>
 
-                {/* Body Content */}
                 <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', maxHeight: 'calc(100vh - 240px)' }}>
 
-                    {/* Strict Business Rule Warning Banner */}
                     {isCurrentSheetChild && (
                         <div style={{
                             padding: '12px 16px',
@@ -183,9 +253,9 @@ export default function SheetToolsFilterModal({
                             <AlertTriangle size={20} color="#DC2626" style={{ flexShrink: 0, marginTop: '2px' }} />
                             <div>
                                 <strong style={{ color: '#7F1D1D', display: 'block', marginBottom: '2px' }}>
-                                    Règle de filtrage stricte (SheetTools)
+                                    Règle de filtrage stricte
                                 </strong>
-                                La feuille actuellement active ("<strong>{activeSheet.name}</strong>") est une <strong>Feuille Enfant</strong>. Il est strictement interdit d'appliquer un filtre sur une feuille enfant.
+                                Impossible d'appliquer un filtre sur une feuille enfant ({activeSheet.name}).
                             </div>
                         </div>
                     )}
@@ -204,9 +274,7 @@ export default function SheetToolsFilterModal({
                         </div>
                     )}
 
-                    {/* Form Controls */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                        {/* Parent Sheet Selector */}
                         <div style={{ position: 'relative' }}>
                             <label style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1E293B', display: 'block', marginBottom: '4px' }}>
                                 1. Sélectionner la Feuille Parent Source :
@@ -229,9 +297,7 @@ export default function SheetToolsFilterModal({
                                     boxShadow: '0 2px 4px rgba(2, 0, 108, 0.05)'
                                 }}
                             >
-                                <span>
-                                    {sheets[selectedParentIndex]?.name || activeSheet.name} {sheets[selectedParentIndex]?.type === 'child' ? '(Feuille Enfant - Interdit)' : '(Feuille Parent)'}
-                                </span>
+                                <span>{sheets[selectedParentIndex]?.name || activeSheet.name} {sheets[selectedParentIndex]?.type === 'child' ? '(Enfant - Interdit)' : '(Parent)'}</span>
                                 <ChevronDown size={16} color="#02006c" style={{ transform: isParentDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
                             </div>
 
@@ -258,7 +324,6 @@ export default function SheetToolsFilterModal({
                                                 if (s.type !== 'child') {
                                                     setSelectedParentIndex(idx);
                                                     setIsParentDropdownOpen(false);
-                                                    setErrorMsg('');
                                                 }
                                             }}
                                             style={{
@@ -274,7 +339,7 @@ export default function SheetToolsFilterModal({
                                                 borderBottom: '1px solid #F1F5F9'
                                             }}
                                         >
-                                            <span>{s.name} {s.type === 'child' ? '(Feuille Enfant - Interdit)' : '(Feuille Parent)'}</span>
+                                            <span>{s.name} {s.type === 'child' ? '(Enfant)' : '(Parent)'}</span>
                                             {selectedParentIndex === idx && <span style={{ color: '#02006c', fontWeight: 900 }}>✓</span>}
                                         </div>
                                     ))}
@@ -282,11 +347,10 @@ export default function SheetToolsFilterModal({
                             )}
                         </div>
 
-                        {/* Column Selection Multi-Select Dropdown List */}
                         <div>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
                                 <label style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1E293B' }}>
-                                    2. Colonnes à conserver dans la feuille enfant ({selectedCols.length}/15) :
+                                    2. Colonnes à conserver ({selectedCols.length}/{dataEndCol + 1}) :
                                 </label>
                                 <div style={{ display: 'flex', gap: '8px' }}>
                                     <button
@@ -306,49 +370,57 @@ export default function SheetToolsFilterModal({
                                     </button>
                                 </div>
                             </div>
-                            <select
-                                multiple
-                                value={selectedCols.map(String)}
-                                onChange={(e) => {
-                                    const selected = Array.from(e.target.selectedOptions, opt => Number(opt.value));
-                                    if (selected.length === 0) {
-                                        setErrorMsg("Veuillez conserver au moins une colonne.");
-                                        return;
+
+                            <div style={{
+                                width: '100%',
+                                maxHeight: '200px',
+                                overflowY: 'auto',
+                                padding: '12px',
+                                borderRadius: '10px',
+                                border: '1.5px solid #CBD5E1',
+                                background: '#F8FAFC'
+                            }}>
+                                {groupedColumns.map((g) => {
+                                    if (g.isGroup) {
+                                        const isAllChecked = g.children.every(c => selectedCols.includes(c));
+                                        const isSomeChecked = g.children.some(c => selectedCols.includes(c));
+                                        return (
+                                            <div key={g.id} style={{ marginBottom: '10px', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden' }}>
+                                                <div style={{ padding: '8px 12px', background: 'rgba(2,0,108,0.03)', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => toggleGroup(g.children)}>
+                                                    {isAllChecked ? <CheckSquare size={16} color="#02006c" /> : (isSomeChecked ? <div style={{ width: '14px', height: '14px', background: '#02006c', borderRadius: '3px', margin: '1px' }} /> : <Square size={16} color="#94A3B8" />)}
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#02006c', flex: 1 }}>[Groupe] {g.label}</span>
+                                                    <ListTree size={14} color="#64748B" />
+                                                </div>
+                                                <div style={{ padding: '6px 12px' }}>
+                                                    {g.children.map(cIdx => (
+                                                        <div key={cIdx} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', cursor: 'pointer', marginLeft: '10px' }} onClick={() => toggleCol(cIdx)}>
+                                                            {selectedCols.includes(cIdx) ? <CheckSquare size={14} color="#059669" /> : <Square size={14} color="#CBD5E1" />}
+                                                            <span style={{ fontSize: '0.775rem', color: '#334155' }}>{getColLetter(cIdx)} {parentData[1]?.[cIdx] && `- ${parentData[1]?.[cIdx]}`}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        );
+                                    } else {
+                                        return (
+                                            <div key={g.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', cursor: 'pointer', borderBottom: '1px dashed #E2E8F0' }} onClick={() => toggleCol(g.id)}>
+                                                {selectedCols.includes(g.id) ? <CheckSquare size={16} color="#059669" /> : <Square size={16} color="#94A3B8" />}
+                                                <span style={{ fontSize: '0.8rem', color: '#334155', fontWeight: 500 }}>{g.label}</span>
+                                            </div>
+                                        )
                                     }
-                                    setSelectedCols(selected);
-                                    setErrorMsg('');
-                                }}
-                                style={{
-                                    width: '100%',
-                                    height: '140px',
-                                    padding: '8px 12px',
-                                    borderRadius: '10px',
-                                    border: '1.5px solid #CBD5E1',
-                                    background: '#FFFFFF',
-                                    fontSize: '0.85rem',
-                                    fontWeight: 700,
-                                    color: '#02006c',
-                                    outline: 'none'
-                                }}
-                            >
-                                {Array.from({ length: 15 }).map((_, cIdx) => (
-                                    <option key={cIdx} value={cIdx} style={{ padding: '6px 10px', margin: '2px 0' }}>
-                                        {getColName(cIdx)}
-                                    </option>
-                                ))}
-                            </select>
-                            <span style={{ fontSize: '0.7rem', color: '#64748B', display: 'block', marginTop: '4px' }}>
-                                * Maintenez la touche Ctrl (ou Cmd) enfoncée pour faire une sélection multiple dans la liste déroulante.
-                            </span>
+                                })}
+                            </div>
                         </div>
 
-                        {/* Column to filter - Custom Interactive Dropdown */}
                         <div style={{ position: 'relative' }}>
                             <label style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1E293B', display: 'block', marginBottom: '4px' }}>
                                 3. Colonne de critère de filtre :
                             </label>
-                            <div
-                                onClick={() => !isCurrentSheetChild && setIsColDropdownOpen(!isColDropdownOpen)}
+                            <select
+                                value={targetColIndex}
+                                onChange={(e) => setTargetColIndex(Number(e.target.value))}
+                                disabled={isCurrentSheetChild}
                                 style={{
                                     width: '100%',
                                     padding: '10px 14px',
@@ -358,70 +430,25 @@ export default function SheetToolsFilterModal({
                                     fontSize: '0.85rem',
                                     fontWeight: 700,
                                     color: '#02006c',
-                                    cursor: isCurrentSheetChild ? 'not-allowed' : 'pointer',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    boxShadow: '0 2px 4px rgba(2, 0, 108, 0.05)',
-                                    opacity: isCurrentSheetChild ? 0.6 : 1
+                                    outline: 'none',
+                                    appearance: 'menulist'
                                 }}
                             >
-                                <span>{getColName(targetColIndex)}</span>
-                                <ChevronDown size={16} color="#02006c" style={{ transform: isColDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
-                            </div>
-
-                            {isColDropdownOpen && (
-                                <div style={{
-                                    position: 'absolute',
-                                    top: '100%',
-                                    left: 0,
-                                    right: 0,
-                                    marginTop: '4px',
-                                    background: '#FFFFFF',
-                                    border: '1.5px solid #02006c',
-                                    borderRadius: '12px',
-                                    boxShadow: '0 12px 30px rgba(0, 0, 108, 0.2)',
-                                    zIndex: 999,
-                                    maxHeight: '220px',
-                                    overflowY: 'auto',
-                                    padding: '4px 0'
-                                }}>
-                                    {Array.from({ length: 15 }).map((_, cIdx) => (
-                                        <div
-                                            key={cIdx}
-                                            onClick={() => {
-                                                setTargetColIndex(cIdx);
-                                                setIsColDropdownOpen(false);
-                                            }}
-                                            style={{
-                                                padding: '9px 16px',
-                                                fontSize: '0.825rem',
-                                                fontWeight: targetColIndex === cIdx ? 800 : 600,
-                                                color: targetColIndex === cIdx ? '#02006c' : '#1E293B',
-                                                background: targetColIndex === cIdx ? 'rgba(2, 0, 108, 0.08)' : '#FFFFFF',
-                                                cursor: 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                                borderBottom: '1px solid #F1F5F9'
-                                            }}
-                                        >
-                                            <span>{getColName(cIdx)}</span>
-                                            {targetColIndex === cIdx && <span style={{ color: '#02006c', fontWeight: 900 }}>✓</span>}
-                                        </div>
-                                    ))}
-                                </div>
-                            )}
+                                {Array.from({ length: dataEndCol + 1 }).map((_, cIdx) => (
+                                    <option key={cIdx} value={cIdx}>{getColName(cIdx)}</option>
+                                ))}
+                            </select>
                         </div>
 
-                        {/* Filter Operator & Value */}
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                             <div style={{ position: 'relative' }}>
                                 <label style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1E293B', display: 'block', marginBottom: '4px' }}>
                                     4. Critère de filtrage précis :
                                 </label>
-                                <div
-                                    onClick={() => !isCurrentSheetChild && setIsOperatorDropdownOpen(!isOperatorDropdownOpen)}
+                                <select
+                                    value={filterOperator}
+                                    onChange={(e) => setFilterOperator(e.target.value)}
+                                    disabled={isCurrentSheetChild}
                                     style={{
                                         width: '100%',
                                         padding: '10px 14px',
@@ -431,60 +458,14 @@ export default function SheetToolsFilterModal({
                                         fontSize: '0.85rem',
                                         fontWeight: 700,
                                         color: '#1E293B',
-                                        cursor: isCurrentSheetChild ? 'not-allowed' : 'pointer',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
-                                        opacity: isCurrentSheetChild ? 0.6 : 1
+                                        outline: 'none',
+                                        appearance: 'menulist'
                                     }}
                                 >
-                                    <span>{OPERATORS.find(o => o.value === filterOperator)?.label || filterOperator}</span>
-                                    <ChevronDown size={16} color="#02006c" style={{ transform: isOperatorDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
-                                </div>
-
-                                {isOperatorDropdownOpen && (
-                                    <div style={{
-                                        position: 'absolute',
-                                        top: '100%',
-                                        left: 0,
-                                        right: 0,
-                                        marginTop: '4px',
-                                        background: '#FFFFFF',
-                                        border: '1.5px solid #02006c',
-                                        borderRadius: '12px',
-                                        boxShadow: '0 12px 30px rgba(0, 0, 108, 0.2)',
-                                        zIndex: 999,
-                                        maxHeight: '220px',
-                                        overflowY: 'auto',
-                                        padding: '4px 0'
-                                    }}>
-                                        {OPERATORS.map(op => (
-                                            <div
-                                                key={op.value}
-                                                onClick={() => {
-                                                    setFilterOperator(op.value);
-                                                    setIsOperatorDropdownOpen(false);
-                                                }}
-                                                style={{
-                                                    padding: '9px 16px',
-                                                    fontSize: '0.825rem',
-                                                    fontWeight: filterOperator === op.value ? 800 : 600,
-                                                    color: filterOperator === op.value ? '#02006c' : '#1E293B',
-                                                    background: filterOperator === op.value ? 'rgba(2, 0, 108, 0.08)' : '#FFFFFF',
-                                                    cursor: 'pointer',
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'space-between',
-                                                    borderBottom: '1px solid #F1F5F9'
-                                                }}
-                                            >
-                                                <span>{op.label}</span>
-                                                {filterOperator === op.value && <span style={{ color: '#02006c', fontWeight: 900 }}>✓</span>}
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                                    {OPERATORS.map(op => (
+                                        <option key={op.value} value={op.value}>{op.label}</option>
+                                    ))}
+                                </select>
                             </div>
 
                             <div>
@@ -493,7 +474,7 @@ export default function SheetToolsFilterModal({
                                 </label>
                                 <input
                                     type="text"
-                                    placeholder={filterOperator === 'notEmpty' || filterOperator === 'isEmpty' ? '(Non requis)' : 'ex: Direction, Validé, 1000...'}
+                                    placeholder={filterOperator === 'notEmpty' || filterOperator === 'isEmpty' ? '(Non requis)' : 'ex: Direction, 1000...'}
                                     value={filterValue}
                                     onChange={(e) => setFilterValue(e.target.value)}
                                     disabled={isCurrentSheetChild || filterOperator === 'notEmpty' || filterOperator === 'isEmpty'}
@@ -511,7 +492,6 @@ export default function SheetToolsFilterModal({
                             </div>
                         </div>
 
-                        {/* Child Sheet Name */}
                         <div>
                             <label style={{ fontSize: '0.825rem', fontWeight: 700, color: '#1E293B', display: 'block', marginBottom: '4px' }}>
                                 6. Nom de la Feuille Enfant à générer :
@@ -536,7 +516,6 @@ export default function SheetToolsFilterModal({
                     </div>
                 </div>
 
-                {/* Footer buttons */}
                 <div style={{
                     padding: '14px 20px',
                     background: '#F8FAFC',

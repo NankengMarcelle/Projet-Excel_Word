@@ -595,35 +595,87 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         const parentData = parentSheet.data || [];
         const rawHeaderRow = parentData[0] || [];
 
-        // Filter rows from parent data (skip header row 0)
-        const filteredRawRows = parentData.slice(1).filter(row => {
+        const filteredRawRowsWithIndex = [];
+        for (let r = 1; r < parentData.length; r++) {
+            const row = parentData[r];
             const cellVal = String(row[colIndex] || '').trim().toLowerCase();
             const targetVal = String(filterValue || '').trim().toLowerCase();
+            let keep = false;
 
-            if (filterOperator === 'equals') return cellVal === targetVal;
-            if (filterOperator === 'contains') return cellVal.includes(targetVal);
-            if (filterOperator === 'startsWith') return cellVal.startsWith(targetVal);
-            if (filterOperator === 'greaterThan') return parseFloat(cellVal) > parseFloat(targetVal);
-            if (filterOperator === 'lessThan') return parseFloat(cellVal) < parseFloat(targetVal);
-            if (filterOperator === 'notEmpty') return cellVal !== '';
-            if (filterOperator === 'isEmpty') return cellVal === '';
-            return true;
-        });
+            if (filterOperator === 'equals') keep = cellVal === targetVal;
+            else if (filterOperator === 'contains') keep = cellVal.includes(targetVal);
+            else if (filterOperator === 'startsWith') keep = cellVal.startsWith(targetVal);
+            else if (filterOperator === 'greaterThan') keep = parseFloat(cellVal) > parseFloat(targetVal);
+            else if (filterOperator === 'lessThan') keep = parseFloat(cellVal) < parseFloat(targetVal);
+            else if (filterOperator === 'notEmpty') keep = cellVal !== '';
+            else if (filterOperator === 'isEmpty') keep = cellVal === '';
+            else keep = true;
 
-        // Determine column projection indices
+            if (keep) {
+                filteredRawRowsWithIndex.push({ row, originalR: r });
+            }
+        }
+
         const colIndicesToKeep = Array.isArray(selectedCols) && selectedCols.length > 0
             ? selectedCols
             : Array.from({ length: 15 }, (_, i) => i);
 
-        // Project header row
+        // Map ColWidths
+        const newColWidths = {};
+        colIndicesToKeep.forEach((oldCIdx, newCIdx) => {
+            if (parentSheet.colWidths?.[oldCIdx]) {
+                newColWidths[newCIdx] = parentSheet.colWidths[oldCIdx];
+            }
+        });
+
+        // Map RowHeights
+        const newRowHeights = {};
+        if (parentSheet.rowHeights?.[0]) newRowHeights[0] = parentSheet.rowHeights[0];
+        filteredRawRowsWithIndex.forEach((item, newRowCounter) => {
+            if (parentSheet.rowHeights?.[item.originalR]) {
+                newRowHeights[newRowCounter + 1] = parentSheet.rowHeights[item.originalR];
+            }
+        });
+
+        // Map CellStyles
+        const newCellStyles = {};
+        const oldStyles = parentSheet.cellStyles || {};
+        colIndicesToKeep.forEach((oldCIdx, newCIdx) => {
+            if (oldStyles[`0_${oldCIdx}`]) newCellStyles[`0_${newCIdx}`] = oldStyles[`0_${oldCIdx}`];
+        });
+        filteredRawRowsWithIndex.forEach((item, newRowCounter) => {
+            const newR = newRowCounter + 1;
+            colIndicesToKeep.forEach((oldCIdx, newCIdx) => {
+                if (oldStyles[`${item.originalR}_${oldCIdx}`]) {
+                    newCellStyles[`${newR}_${newCIdx}`] = oldStyles[`${item.originalR}_${oldCIdx}`];
+                }
+            });
+        });
+
+        // Map Merges (Header Row specifically to preserve table layouts)
+        const newMerges = [];
+        (parentSheet.merges || []).forEach(m => {
+            let sR = m.startRow !== undefined ? m.startRow : m.s?.r;
+            let eR = m.endRow !== undefined ? m.endRow : m.e?.r;
+            let sC = m.startCol !== undefined ? m.startCol : m.s?.c;
+            let eC = m.endCol !== undefined ? m.endCol : m.e?.c;
+
+            if (sR === 0 && eR === 0) {
+                let newStartC = -1;
+                let newEndC = -1;
+                colIndicesToKeep.forEach((oldC, idx) => {
+                    if (oldC === sC) newStartC = idx;
+                    if (oldC === eC) newEndC = idx;
+                });
+                if (newStartC !== -1 && newEndC !== -1 && newStartC < newEndC) {
+                    newMerges.push({ startRow: 0, endRow: 0, startCol: newStartC, endCol: newEndC, rowSpan: 1, colSpan: newEndC - newStartC + 1 });
+                }
+            }
+        });
+
         const projectedHeaderRow = colIndicesToKeep.map(cIdx => rawHeaderRow[cIdx] || '');
+        const projectedRows = filteredRawRowsWithIndex.map(item => colIndicesToKeep.map(cIdx => item.row[cIdx] || ''));
 
-        // Project filtered data rows
-        const projectedRows = filteredRawRows.map(row =>
-            colIndicesToKeep.map(cIdx => row[cIdx] || '')
-        );
-
-        // Ensure empty rows padding up to 50 rows
         const emptyRowsNeeded = Math.max(0, 49 - projectedRows.length);
         const paddedRows = [projectedHeaderRow, ...projectedRows];
         for (let i = 0; i < emptyRowsNeeded; i++) {
@@ -635,13 +687,17 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             type: 'child',
             parentSheetName,
             filterRule: { colIndex, filterOperator, filterValue, selectedCols: colIndicesToKeep },
-            data: paddedRows
+            data: paddedRows,
+            cellStyles: newCellStyles,
+            colWidths: newColWidths,
+            rowHeights: newRowHeights,
+            merges: newMerges
         };
 
         const updatedSheets = [...currentSheets, newChildSheet];
         setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
         setActiveSheetIndex(updatedSheets.length - 1);
-        setStatusMessage(`Feuille Enfant "${childSheetName}" créée (${colIndicesToKeep.length} colonne(s) conservée(s), ${projectedRows.length} ligne(s) filtrée(s)).`);
+        setStatusMessage(`Feuille Enfant "${childSheetName}" créée (styles préservés).`);
         setTimeout(() => setStatusMessage(''), 4000);
     };
 

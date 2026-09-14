@@ -737,6 +737,8 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                     if (newEndC === -1 || mappedC > newEndC) newEndC = mappedC;
                 }
             }
+            let newStartR = -1;
+            let newEndR = -1;
 
             if (sR >= headerStartRow && eR <= headerEndRow) {
                 newStartR = sR - headerStartRow;

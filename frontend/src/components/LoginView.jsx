@@ -7,12 +7,19 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
     const [credentials, setCredentials] = useState({
         username: 'p.nankeng@antic.cm',
         password: 'AnticAdmin2026!',
+        confirmPassword: '',
         fullName: 'Paul NANKENG'
     });
 
     const handleSubmit = (e) => {
         e.preventDefault();
         if (isSignUp) {
+            if (credentials.password !== credentials.confirmPassword) {
+                if (showToast) {
+                    showToast(lang === 'fr' ? "Les mots de passe ne correspondent pas." : "Passwords do not match.", "error");
+                }
+                return;
+            }
             if (showToast) {
                 showToast(lang === 'fr' ? "Compte agent créé avec succès ! Bienvenue sur le portail." : "Agent account successfully created! Welcome.", "success");
             }
@@ -256,6 +263,35 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
                             </button>
                         </div>
                     </div>
+
+                    {/* Confirm Password Input for Sign Up */}
+                    {isSignUp && (
+                        <div>
+                            <label style={{ fontSize: '0.775rem', fontWeight: 700, color: '#E0E7FF', display: 'block', marginBottom: '6px' }}>
+                                {lang === 'fr' ? "Confirmer le Mot de Passe" : "Confirm Password"}
+                            </label>
+                            <div style={{ position: 'relative' }}>
+                                <Lock size={18} color="#02006c" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    required
+                                    value={credentials.confirmPassword}
+                                    onChange={(e) => setCredentials({ ...credentials, confirmPassword: e.target.value })}
+                                    style={{
+                                        width: '100%',
+                                        padding: '0.75rem 2.8rem 0.75rem 2.6rem',
+                                        borderRadius: '14px',
+                                        border: '1px solid rgba(255, 255, 255, 0.3)',
+                                        background: '#FFFFFF',
+                                        color: '#0F172A',
+                                        fontSize: '0.85rem',
+                                        fontWeight: 600,
+                                        outline: 'none'
+                                    }}
+                                />
+                            </div>
+                        </div>
+                    )}
 
                     <button
                         type="submit"

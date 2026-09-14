@@ -491,11 +491,27 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 const diff = e.clientX - resizingCol.startX;
                 const newW = Math.max(5, resizingCol.startWidth + diff);
                 setColWidths(prev => ({ ...prev, [resizingCol.cIdx]: newW }));
+
+                if (newW > 15 && hiddenCols.has(resizingCol.cIdx)) {
+                    setHiddenCols(prev => {
+                        const next = new Set(prev);
+                        next.delete(resizingCol.cIdx);
+                        return next;
+                    });
+                }
             }
             if (resizingRow) {
                 const diff = e.clientY - resizingRow.startY;
                 const newH = Math.max(5, resizingRow.startHeight + diff);
                 setRowHeights(prev => ({ ...prev, [resizingRow.rIdx]: newH }));
+
+                if (newH > 15 && hiddenRows.has(resizingRow.rIdx)) {
+                    setHiddenRows(prev => {
+                        const next = new Set(prev);
+                        next.delete(resizingRow.rIdx);
+                        return next;
+                    });
+                }
             }
         };
 
@@ -2292,11 +2308,11 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                 <tr style={{ background: '#F1F5F9', position: 'sticky', top: 0, zIndex: 10 }}>
                                     <th style={{ padding: '6px', border: '1px solid #CBD5E1', width: '45px', minWidth: '45px', textAlign: 'center', fontSize: '0.75rem', fontWeight: 700, background: '#E2E8F0' }}>#</th>
                                     {(sheetData[0] || Array(26).fill('')).map((_, cIdx) => {
-                                        if (isColHidden(cIdx)) return null;
-                                        const customW = colWidths[cIdx] ? `${colWidths[cIdx]}px` : '90px';
+                                        const isHidden = isColHidden(cIdx);
+                                        const customW = isHidden ? '6px' : (colWidths[cIdx] ? `${colWidths[cIdx]}px` : '90px');
                                         return (
-                                            <th key={cIdx} style={{ padding: '6px 12px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: 700, minWidth: customW, width: customW, maxWidth: customW, fontSize: '0.75rem', position: 'relative', userSelect: 'none', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                                {getColLabel(cIdx)}
+                                            <th key={cIdx} style={{ padding: isHidden ? 0 : '6px 12px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: 700, minWidth: customW, width: customW, maxWidth: customW, fontSize: '0.75rem', position: 'relative', userSelect: 'none', overflow: 'hidden', textOverflow: 'ellipsis', background: isHidden ? '#CBD5E1' : undefined }}>
+                                                {!isHidden && getColLabel(cIdx)}
                                                 <div
                                                     onMouseDown={(e) => handleColResizeStart(e, cIdx)}
                                                     title="Glisser pour redimensionner la largeur"
@@ -2320,13 +2336,13 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             </thead>
                             <tbody>
                                 {sheetData.map((row, rIdx) => {
-                                    if (isRowHidden(rIdx)) return null;
-                                    const customH = rowHeights[rIdx] ? `${rowHeights[rIdx]}px` : '28px';
+                                    const isHiddenRow = isRowHidden(rIdx);
+                                    const customH = isHiddenRow ? '6px' : (rowHeights[rIdx] ? `${rowHeights[rIdx]}px` : '28px');
 
                                     return (
-                                        <tr key={rIdx} style={{ height: customH }}>
-                                            <td style={{ padding: '4px 6px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: 700, color: '#64748B', background: '#F8FAFC', fontSize: '0.75rem', position: 'relative', userSelect: 'none' }}>
-                                                {rIdx + 1}
+                                        <tr key={rIdx} style={{ height: customH, minHeight: customH, maxHeight: customH }}>
+                                            <td style={{ padding: isHiddenRow ? 0 : '4px 6px', border: '1px solid #CBD5E1', textAlign: 'center', fontWeight: 700, color: '#64748B', background: isHiddenRow ? '#CBD5E1' : '#F8FAFC', fontSize: '0.75rem', position: 'relative', userSelect: 'none', overflow: 'hidden' }}>
+                                                {!isHiddenRow && (rIdx + 1)}
                                                 <div
                                                     onMouseDown={(e) => handleRowResizeStart(e, rIdx)}
                                                     title="Glisser pour redimensionner la hauteur"
@@ -2345,11 +2361,11 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                                 />
                                             </td>
                                             {(Array.isArray(row) ? row : Array(26).fill('')).map((cellValue, cIdx) => {
-                                                if (isColHidden(cIdx)) return null;
+                                                const isHidden = isColHidden(cIdx);
                                                 const mergeInfo = getMergeInfo(rIdx, cIdx, currentSheet.merges);
                                                 if (mergeInfo?.isCovered) return null;
 
-                                                const customW = colWidths[cIdx] ? `${colWidths[cIdx]}px` : '100px';
+                                                const customW = isHidden ? '6px' : (colWidths[cIdx] ? `${colWidths[cIdx]}px` : '100px');
                                                 const selected = isCellSelected(rIdx, cIdx);
                                                 const isEditingThisCell = editingCell && editingCell.r === rIdx && editingCell.c === cIdx;
                                                 const customStyle = cellStyles[`${rIdx}_${cIdx}`] || {};
@@ -2374,7 +2390,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                                         onDoubleClick={() => handleCellDoubleClick(rIdx, cIdx)}
                                                         style={{
                                                             position: 'relative',
-                                                            padding: isEditingThisCell ? 0 : '6px 10px',
+                                                            padding: (isEditingThisCell || isHidden) ? 0 : '6px 10px',
                                                             border: isInPreview ? '2px dashed #02006c' : (selected ? '2px solid #02006c' : '1px solid #E2E8F0'),
                                                             background: isInPreview ? 'rgba(2, 0, 108, 0.2)' : (customStyle.bg ? customStyle.bg : (selected ? 'rgba(2, 0, 108, 0.12)' : '#FFFFFF')),
                                                             color: customStyle.color ? customStyle.color : '#0F172A',
@@ -2390,10 +2406,12 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                                             width: customW,
                                                             height: customH,
                                                             whiteSpace: customStyle.wrapText ? 'normal' : 'nowrap',
-                                                            wordBreak: customStyle.wrapText ? 'break-word' : 'normal'
+                                                            wordBreak: customStyle.wrapText ? 'break-word' : 'normal',
+                                                            overflow: 'hidden',
+                                                            background: isHidden ? '#E2E8F0' : (isInPreview ? 'rgba(2, 0, 108, 0.2)' : (customStyle.bg ? customStyle.bg : (selected ? 'rgba(2, 0, 108, 0.12)' : '#FFFFFF')))
                                                         }}
                                                     >
-                                                        {isEditingThisCell ? (
+                                                        {isHidden ? null : (isEditingThisCell ? (
                                                             <input
                                                                 ref={inlineInputRef}
                                                                 autoFocus
@@ -2409,7 +2427,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                                                 onBlur={() => commitCellEdit()}
                                                                 style={{ width: '100%', height: '100%', padding: '4px 8px', border: 'none', outline: '2px solid #02006c', background: '#FFF' }}
                                                             />
-                                                        ) : cellValue}
+                                                        ) : cellValue)}
 
                                                         {/* Fill Handle Square at Bottom-Right Corner of Selection */}
                                                         {rIdx === maxR && cIdx === maxC && !isEditingThisCell && (

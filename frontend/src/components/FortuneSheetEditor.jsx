@@ -637,17 +637,24 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             }
         });
 
-        // Map CellStyles
+        // Map CellStyles & CellFormulas
         const newCellStyles = {};
+        const newCellFormulas = {};
         const oldStyles = parentSheet.cellStyles || {};
+        const oldFormulas = parentSheet.cellFormulas || {};
+
         colIndicesToKeep.forEach((oldCIdx, newCIdx) => {
             if (oldStyles[`0_${oldCIdx}`]) newCellStyles[`0_${newCIdx}`] = oldStyles[`0_${oldCIdx}`];
+            if (oldFormulas[`0_${oldCIdx}`]) newCellFormulas[`0_${newCIdx}`] = oldFormulas[`0_${oldCIdx}`];
         });
         filteredRawRowsWithIndex.forEach((item, newRowCounter) => {
             const newR = newRowCounter + 1;
             colIndicesToKeep.forEach((oldCIdx, newCIdx) => {
                 if (oldStyles[`${item.originalR}_${oldCIdx}`]) {
                     newCellStyles[`${newR}_${newCIdx}`] = oldStyles[`${item.originalR}_${oldCIdx}`];
+                }
+                if (oldFormulas[`${item.originalR}_${oldCIdx}`]) {
+                    newCellFormulas[`${newR}_${newCIdx}`] = oldFormulas[`${item.originalR}_${oldCIdx}`];
                 }
             });
         });
@@ -689,6 +696,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             filterRule: { colIndex, filterOperator, filterValue, selectedCols: colIndicesToKeep },
             data: paddedRows,
             cellStyles: newCellStyles,
+            cellFormulas: newCellFormulas,
             colWidths: newColWidths,
             rowHeights: newRowHeights,
             merges: newMerges
@@ -2505,7 +2513,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             {activeSheetMenu === idx && (
                                 <div style={{
                                     position: 'fixed',
-                                    bottom: '45px',
+                                    bottom: '65px',
                                     background: '#FFFFFF',
                                     border: '1.5px solid #02006c',
                                     borderRadius: '12px',
@@ -2514,6 +2522,17 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                     width: '190px',
                                     zIndex: 99999
                                 }}>
+                                    {s.type === 'child' && (
+                                        <div
+                                            onClick={() => {
+                                                handleSyncChildSheets(s.parentSheetName);
+                                                setActiveSheetMenu(null);
+                                            }}
+                                            style={{ padding: '7px 14px', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: '#059669', fontWeight: 800 }}
+                                        >
+                                            <CheckCircle2 size={14} /> Actualiser (Sync Parent)
+                                        </div>
+                                    )}
                                     <div
                                         onClick={() => handleRenameSheet(idx)}
                                         style={{ padding: '7px 14px', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: '#1E293B', fontWeight: 600 }}

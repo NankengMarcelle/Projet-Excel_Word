@@ -245,6 +245,35 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         const activeSheetData = currentWorkbook?.sheets?.[activeSheetIndex]?.data || [];
         const newSheetData = activeSheetData.map(r => [...r]);
         const newCellStyles = { ...cellStyles };
+        const newCellFormulas = { ...cellFormulas }; // Track new formulas
+
+        const shiftFormula = (formulaStr, rDiff, cDiff) => {
+            return formulaStr.replace(/(\$?)([A-Z]+)(\$?)(\d+)/g, (match, colAbs, col, rowAbs, row) => {
+                let newCol = col;
+                let newRow = parseInt(row, 10);
+
+                if (!colAbs) {
+                    let colNum = 0;
+                    for (let i = 0; i < col.length; i++) {
+                        colNum = colNum * 26 + (col.charCodeAt(i) - 64);
+                    }
+                    colNum = Math.max(1, colNum + cDiff);
+                    newCol = '';
+                    let temp = colNum;
+                    while (temp > 0) {
+                        let mod = (temp - 1) % 26;
+                        newCol = String.fromCharCode(65 + mod) + newCol;
+                        temp = Math.floor((temp - 1) / 26);
+                    }
+                }
+
+                if (!rowAbs) {
+                    newRow = Math.max(1, newRow + rDiff);
+                }
+
+                return `${colAbs}${newCol}${rowAbs}${newRow}`;
+            });
+        };
 
         for (let r = fillMinR; r <= fillMaxR; r++) {
             for (let c = fillMinC; c <= fillMaxC; c++) {
@@ -252,14 +281,24 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
 
                 const sourceR = sourceMinR + ((r - sourceMinR) % height + height) % height;
                 const sourceC = sourceMinC + ((c - sourceMinC) % width + width) % width;
+                const rDiff = r - sourceR;
+                const cDiff = c - sourceC;
 
                 const sourceVal = newSheetData[sourceR] && newSheetData[sourceR][sourceC] !== undefined ? String(newSheetData[sourceR][sourceC]) : '';
                 const sourceStyle = cellStyles[`${sourceR}_${sourceC}`];
-
-                const newVal = sourceVal;
+                const sourceFormula = cellFormulas[`${sourceR}_${sourceC}`];
 
                 if (!newSheetData[r]) newSheetData[r] = Array(26).fill('');
-                newSheetData[r][c] = newVal;
+
+                if (sourceFormula) {
+                    const shiftedFormula = shiftFormula(sourceFormula, rDiff, cDiff);
+                    newCellFormulas[`${r}_${c}`] = shiftedFormula;
+                    // Don't statically copy the evaluated sourceVal. We set it up to be evaluated dynamically later.
+                    newSheetData[r][c] = shiftedFormula;
+                } else {
+                    delete newCellFormulas[`${r}_${c}`];
+                    newSheetData[r][c] = sourceVal;
+                }
 
                 if (sourceStyle) {
                     newCellStyles[`${r}_${c}`] = { ...sourceStyle };
@@ -270,9 +309,12 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         }
 
         setCellStyles(newCellStyles);
+        setCellFormulas(newCellFormulas);
+        const calculatedData = recalcAllFormulas(newSheetData, newCellFormulas);
+
         const updatedSheets = (currentWorkbook?.sheets || []).map((s, i) => {
             if (i === activeSheetIndex) {
-                return { ...s, data: newSheetData, cellStyles: newCellStyles };
+                return { ...s, data: calculatedData, cellStyles: newCellStyles, cellFormulas: newCellFormulas };
             }
             return s;
         });

@@ -1,0 +1,4 @@
+# Claude Code keeps re-writing this at the session's original working directory regardless of
+# the backend/ restructure below — it's a personal, machine-specific permission allowlist, not
+# project config (backend/.gitignore excludes the equivalent file under backend/.claude/ too).
+/.claude/settings.local.json

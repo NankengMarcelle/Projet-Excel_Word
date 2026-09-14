@@ -645,11 +645,8 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
 
     const [isSheetToolsModalOpen, setIsSheetToolsModalOpen] = useState(false);
 
-    const handleCreateChildSheet = ({ parentSheetName, childSheetName, colIndex, filterOperator, filterValue, selectedCols }) => {
-        const currentSheets = currentWorkbook?.sheets || [];
-        const parentSheet = currentSheets.find(s => s.name === parentSheetName);
-        if (!parentSheet) return;
-
+    const calculateProjectedSheet = (parentSheet, filterRule, childSheetName = null) => {
+        const { colIndex, filterOperator, filterValue, selectedCols } = filterRule;
         const parentData = parentSheet.data || [];
         const rawHeaderRow = parentData[0] || [];
 
@@ -676,9 +673,8 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
 
         const colIndicesToKeep = Array.isArray(selectedCols) && selectedCols.length > 0
             ? selectedCols
-            : Array.from({ length: 15 }, (_, i) => i);
+            : Array.from({ length: parentData[0]?.length || 15 }, (_, i) => i);
 
-        // Map ColWidths
         const newColWidths = {};
         colIndicesToKeep.forEach((oldCIdx, newCIdx) => {
             if (parentSheet.colWidths?.[oldCIdx]) {
@@ -686,7 +682,6 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             }
         });
 
-        // Map RowHeights
         const newRowHeights = {};
         if (parentSheet.rowHeights?.[0]) newRowHeights[0] = parentSheet.rowHeights[0];
         filteredRawRowsWithIndex.forEach((item, newRowCounter) => {
@@ -695,21 +690,20 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             }
         });
 
-        // Map CellStyles & CellFormulas
         const newCellStyles = {};
         const newCellFormulas = {};
         const oldStyles = parentSheet.cellStyles || {};
         const oldFormulas = parentSheet.cellFormulas || {};
 
         colIndicesToKeep.forEach((oldCIdx, newCIdx) => {
-            if (oldStyles[`0_${oldCIdx}`]) newCellStyles[`0_${newCIdx}`] = oldStyles[`0_${oldCIdx}`];
+            if (oldStyles[`0_${oldCIdx}`]) newCellStyles[`0_${newCIdx}`] = JSON.parse(JSON.stringify(oldStyles[`0_${oldCIdx}`]));
             if (oldFormulas[`0_${oldCIdx}`]) newCellFormulas[`0_${newCIdx}`] = oldFormulas[`0_${oldCIdx}`];
         });
         filteredRawRowsWithIndex.forEach((item, newRowCounter) => {
             const newR = newRowCounter + 1;
             colIndicesToKeep.forEach((oldCIdx, newCIdx) => {
                 if (oldStyles[`${item.originalR}_${oldCIdx}`]) {
-                    newCellStyles[`${newR}_${newCIdx}`] = oldStyles[`${item.originalR}_${oldCIdx}`];
+                    newCellStyles[`${newR}_${newCIdx}`] = JSON.parse(JSON.stringify(oldStyles[`${item.originalR}_${oldCIdx}`]));
                 }
                 if (oldFormulas[`${item.originalR}_${oldCIdx}`]) {
                     newCellFormulas[`${newR}_${newCIdx}`] = oldFormulas[`${item.originalR}_${oldCIdx}`];
@@ -717,7 +711,6 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             });
         });
 
-        // Map Merges (Header Row specifically to preserve table layouts)
         const newMerges = [];
         (parentSheet.merges || []).forEach(m => {
             let sR = m.startRow !== undefined ? m.startRow : m.s?.r;
@@ -725,16 +718,40 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             let sC = m.startCol !== undefined ? m.startCol : m.s?.c;
             let eC = m.endCol !== undefined ? m.endCol : m.e?.c;
 
-            if (sR === 0 && eR === 0) {
-                let newStartC = -1;
-                let newEndC = -1;
-                colIndicesToKeep.forEach((oldC, idx) => {
-                    if (oldC === sC) newStartC = idx;
-                    if (oldC === eC) newEndC = idx;
-                });
-                if (newStartC !== -1 && newEndC !== -1 && newStartC < newEndC) {
-                    newMerges.push({ startRow: 0, endRow: 0, startCol: newStartC, endCol: newEndC, rowSpan: 1, colSpan: newEndC - newStartC + 1 });
+            let newStartC = -1;
+            let newEndC = -1;
+            for (let c = sC; c <= eC; c++) {
+                const mappedC = colIndicesToKeep.indexOf(c);
+                if (mappedC !== -1) {
+                    if (newStartC === -1 || mappedC < newStartC) newStartC = mappedC;
+                    if (newEndC === -1 || mappedC > newEndC) newEndC = mappedC;
                 }
+            }
+
+            let newStartR = -1;
+            let newEndR = -1;
+            if (sR === 0) newStartR = 0;
+            if (eR === 0) newEndR = 0;
+
+            if (eR > 0) {
+                const keptRowsInMerge = filteredRawRowsWithIndex
+                    .map((item, idx) => ({ ...item, newR: idx + 1 }))
+                    .filter(item => item.originalR >= sR && item.originalR <= eR);
+
+                if (keptRowsInMerge.length > 0) {
+                    if (newStartR === -1 || keptRowsInMerge[0].newR < newStartR) newStartR = keptRowsInMerge[0].newR;
+                    if (newEndR === -1 || keptRowsInMerge[keptRowsInMerge.length - 1].newR > newEndR) newEndR = keptRowsInMerge[keptRowsInMerge.length - 1].newR;
+                }
+            }
+
+            if (sR === 0 && eR > 0 && newEndR !== -1) newStartR = 0;
+
+            if (newStartC !== -1 && newStartR !== -1 && (newStartC < newEndC || newStartR < newEndR)) {
+                newMerges.push({
+                    startRow: newStartR, endRow: newEndR, startCol: newStartC, endCol: newEndC,
+                    rowSpan: newEndR - newStartR + 1, colSpan: newEndC - newStartC + 1,
+                    s: { r: newStartR, c: newStartC }, e: { r: newEndR, c: newEndC }
+                });
             }
         });
 
@@ -747,11 +764,11 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             paddedRows.push(Array(colIndicesToKeep.length).fill(''));
         }
 
-        const newChildSheet = {
-            name: childSheetName,
+        return {
+            name: childSheetName || `${parentSheet.name}_Child`,
             type: 'child',
-            parentSheetName,
-            filterRule: { colIndex, filterOperator, filterValue, selectedCols: colIndicesToKeep },
+            parentSheetName: parentSheet.name,
+            filterRule,
             data: paddedRows,
             cellStyles: newCellStyles,
             cellFormulas: newCellFormulas,
@@ -759,6 +776,14 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
             rowHeights: newRowHeights,
             merges: newMerges
         };
+    };
+
+    const handleCreateChildSheet = ({ parentSheetName, childSheetName, colIndex, filterOperator, filterValue, selectedCols }) => {
+        const currentSheets = currentWorkbook?.sheets || [];
+        const parentSheet = currentSheets.find(s => s.name === parentSheetName);
+        if (!parentSheet) return;
+
+        const newChildSheet = calculateProjectedSheet(parentSheet, { colIndex, filterOperator, filterValue, selectedCols }, childSheetName);
 
         const parentIndex = currentSheets.findIndex(s => s.name === parentSheetName);
         const insertIndex = parentIndex !== -1 ? parentIndex + 1 : currentSheets.length;
@@ -768,7 +793,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
 
         setCurrentWorkbook({ ...currentWorkbook, sheets: updatedSheets });
         setActiveSheetIndex(insertIndex);
-        setStatusMessage(`Feuille Enfant "${childSheetName}" créée (styles préservés).`);
+        setStatusMessage(`Feuille Enfant "${childSheetName}" créée (styles et fusions préservés).`);
         setTimeout(() => setStatusMessage(''), 4000);
     };
 
@@ -784,27 +809,9 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
 
         const updatedSheets = currentSheets.map(sheet => {
             if (sheet.type === 'child' && sheet.parentSheetName === targetParentName && sheet.filterRule) {
-                const { colIndex, filterOperator, filterValue } = sheet.filterRule;
-                const filteredRows = parentData.slice(1).filter(row => {
-                    const cellVal = String(row[colIndex] || '').trim().toLowerCase();
-                    const targetVal = String(filterValue).trim().toLowerCase();
-
-                    if (filterOperator === 'equals') return cellVal === targetVal;
-                    if (filterOperator === 'contains') return cellVal.includes(targetVal);
-                    if (filterOperator === 'startsWith') return cellVal.startsWith(targetVal);
-                    if (filterOperator === 'greaterThan') return parseFloat(cellVal) > parseFloat(targetVal);
-                    if (filterOperator === 'lessThan') return parseFloat(cellVal) < parseFloat(targetVal);
-                    return true;
-                });
-
-                const emptyRowsNeeded = Math.max(0, 49 - filteredRows.length);
-                const paddedRows = [headerRow, ...filteredRows];
-                for (let i = 0; i < emptyRowsNeeded; i++) {
-                    paddedRows.push(Array(26).fill(''));
-                }
-
+                const refreshedSheet = calculateProjectedSheet(parentSheet, sheet.filterRule, sheet.name);
                 updatedCount++;
-                return { ...sheet, data: paddedRows };
+                return refreshedSheet;
             }
             return sheet;
         });

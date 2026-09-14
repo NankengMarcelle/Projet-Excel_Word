@@ -174,8 +174,8 @@ export default function SheetToolsFilterModal({
         onCreateChildSheet({
             parentSheetName: parentSheet.name,
             childSheetName: defaultName,
-            colIndex: filterColIndex,
-            colLabel: getColName(filterColIndex),
+            colIndex: targetColIndex,
+            colLabel: getColName(targetColIndex),
             filterOperator,
             filterValue: filterValue.trim(),
             selectedCols,

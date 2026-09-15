@@ -14,7 +14,6 @@ import FileUploader from './components/FileUploader';
 import LoginView from './components/LoginView';
 
 import { CheckCircle2, AlertCircle, AlertTriangle, X } from 'lucide-react';
-import { currentUser, sampleWorkbooks, conversionHistory } from './data/mockData';
 import { authApi, workbooksApi } from './api_client';
 
 export default function App() {
@@ -22,22 +21,50 @@ export default function App() {
     return Boolean(localStorage.getItem('sheetflow_token') || localStorage.getItem('antic_auth') === 'true');
   });
 
+  const [currentUser, setCurrentUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem('sheetflow_user');
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        return {
+          id: u.id,
+          name: u.full_name || u.email || 'Agent ANTIC',
+          email: u.email,
+          role: u.role || 'ANTIC Worker',
+          avatar: u.full_name ? u.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'PN'
+        };
+      }
+    } catch (e) { }
+    return null;
+  });
+
   useEffect(() => {
     async function checkAuth() {
       const token = localStorage.getItem('sheetflow_token');
       if (token) {
         try {
-          await authApi.getMe();
-          setIsAuthenticated(true);
+          const user = await authApi.getMe();
+          if (user) {
+            setCurrentUser({
+              id: user.id,
+              name: user.full_name || user.email || 'Agent ANTIC',
+              email: user.email,
+              role: user.role || 'ANTIC Worker',
+              avatar: user.full_name ? user.full_name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() : 'PN'
+            });
+            setIsAuthenticated(true);
+          }
         } catch (e) {
           console.warn('Session expirée ou invalide:', e);
           authApi.logout();
+          setCurrentUser(null);
           setIsAuthenticated(false);
         }
       }
     }
     checkAuth();
   }, []);
+
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState('dashboard');
   const [theme, setTheme] = useState('dark');
@@ -49,8 +76,33 @@ export default function App() {
     setActiveView(view);
     setMobileSidebarOpen(false);
   };
-  const [workbooks, setWorkbooks] = useState([]); // Removed sampleWorkbooks, default to empty
-  const [conversions, setConversions] = useState(conversionHistory);
+
+  const [workbooks, setWorkbooks] = useState([]);
+  const [conversions, setConversions] = useState([]);
+
+  useEffect(() => {
+    async function fetchBackendWorkbooks() {
+      if (isAuthenticated) {
+        try {
+          const apiWorkbooks = await workbooksApi.list();
+          if (Array.isArray(apiWorkbooks)) {
+            const formatted = apiWorkbooks.map(wb => ({
+              id: wb.id,
+              name: wb.filename,
+              size: wb.file_size_bytes ? `${(wb.file_size_bytes / (1024 * 1024)).toFixed(1)} MB` : '1.0 MB',
+              updatedAt: new Date(wb.updated_at).toLocaleString(),
+              sheetsCount: 1,
+              status: 'Disponible'
+            }));
+            setWorkbooks(formatted);
+          }
+        } catch (e) {
+          console.warn('Erreur chargement des classeurs backend:', e);
+        }
+      }
+    }
+    fetchBackendWorkbooks();
+  }, [isAuthenticated]);
   const [selectedWorkbook, setSelectedWorkbook] = useState(() => {
     try {
       const isSessionActive = sessionStorage.getItem('antic_session_active') === 'true';

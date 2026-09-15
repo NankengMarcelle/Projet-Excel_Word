@@ -2459,8 +2459,17 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                                                 onBlur={() => commitCellEdit()}
                                                                 style={{ width: '100%', height: '100%', padding: '4px 8px', border: 'none', outline: '2px solid #02006c', background: '#FFF' }}
                                                             />
-                                                        ) : cellValue)}
-
+                                                        ) : (
+                                                            <div style={{
+                                                                width: '100%',
+                                                                height: '100%',
+                                                                overflow: 'hidden',
+                                                                opacity: (colWidths[cIdx] !== undefined && colWidths[cIdx] < 22) ? 0 : 1,
+                                                                pointerEvents: (colWidths[cIdx] !== undefined && colWidths[cIdx] < 22) ? 'none' : 'auto'
+                                                            }}>
+                                                                {cellValue}
+                                                            </div>
+                                                        ))}
                                                         {/* Fill Handle Square at Bottom-Right Corner of Selection */}
                                                         {rIdx === maxR && cIdx === maxC && !isEditingThisCell && (
                                                             <div

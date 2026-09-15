@@ -321,32 +321,33 @@ export default function SheetToolsFilterModal({
                                     overflowY: 'auto',
                                     padding: '4px 0'
                                 }}>
-                                    {sheets.map((s, idx) => (
-                                        <div
-                                            key={idx}
-                                            onClick={() => {
-                                                if (s.type !== 'child') {
+                                    {sheets.map((s, idx) => {
+                                        if (s.type === 'child') return null;
+                                        return (
+                                            <div
+                                                key={idx}
+                                                onClick={() => {
                                                     setSelectedParentIndex(idx);
                                                     setIsParentDropdownOpen(false);
-                                                }
-                                            }}
-                                            style={{
-                                                padding: '9px 16px',
-                                                fontSize: '0.825rem',
-                                                fontWeight: selectedParentIndex === idx ? 800 : 600,
-                                                color: s.type === 'child' ? '#94A3B8' : (selectedParentIndex === idx ? '#02006c' : '#1E293B'),
-                                                background: selectedParentIndex === idx ? 'rgba(2, 0, 108, 0.08)' : '#FFFFFF',
-                                                cursor: s.type === 'child' ? 'not-allowed' : 'pointer',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'space-between',
-                                                borderBottom: '1px solid #F1F5F9'
-                                            }}
-                                        >
-                                            <span>{s.name} {s.type === 'child' ? '(Enfant)' : '(Parent)'}</span>
-                                            {selectedParentIndex === idx && <span style={{ color: '#02006c', fontWeight: 900 }}>✓</span>}
-                                        </div>
-                                    ))}
+                                                }}
+                                                style={{
+                                                    padding: '9px 16px',
+                                                    fontSize: '0.825rem',
+                                                    fontWeight: selectedParentIndex === idx ? 800 : 600,
+                                                    color: selectedParentIndex === idx ? '#02006c' : '#1E293B',
+                                                    background: selectedParentIndex === idx ? 'rgba(2, 0, 108, 0.08)' : '#FFFFFF',
+                                                    cursor: 'pointer',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    borderBottom: '1px solid #F1F5F9'
+                                                }}
+                                            >
+                                                <span>{s.name} (Parent)</span>
+                                                {selectedParentIndex === idx && <span style={{ color: '#02006c', fontWeight: 900 }}>✓</span>}
+                                            </div>
+                                        );
+                                    })}
                                 </div>
                             )}
                         </div>

@@ -78,15 +78,15 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
                 <title>${docTitle}</title>
                 <style>
                     body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; color: #0F172A; margin: 20mm; }
-                    .header { text-align: center; border-bottom: 2px solid #02006c; padding-bottom: 15px; margin-bottom: 20px; }
-                    .country-title { font-size: 9pt; font-weight: bold; color: #02006c; text-transform: uppercase; letter-spacing: 1px; }
+                    .header { text-align: center; border-bottom: 2px solid #0a034a; padding-bottom: 15px; margin-bottom: 20px; }
+                    .country-title { font-size: 9pt; font-weight: bold; color: #0a034a; text-transform: uppercase; letter-spacing: 1px; }
                     .motto { font-size: 8pt; color: #64748B; font-style: italic; margin-top: 2px; }
-                    .agency-name { font-size: 11pt; font-weight: bold; color: #02006c; margin-top: 8px; }
+                    .agency-name { font-size: 11pt; font-weight: bold; color: #0a034a; margin-top: 8px; }
                     .doc-title { font-size: 18pt; font-weight: bold; color: #0F172A; margin-top: 15px; text-transform: uppercase; text-decoration: underline; }
                     .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background-color: #F8FAFC; border: 1px solid #CBD5E1; }
                     .meta-table td { padding: 8px 12px; font-size: 10pt; border: 1px solid #E2E8F0; }
-                    .meta-label { font-weight: bold; color: #02006c; }
-                    .data-table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 25px; border: 1px solid #02006c; }
+                    .meta-label { font-weight: bold; color: #0a034a; }
+                    .data-table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 25px; border: 1px solid #0a034a; }
                     .footer-section { margin-top: 40px; padding-top: 15px; border-top: 1px dashed #CBD5E1; }
                 </style>
             </head>
@@ -109,14 +109,14 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
                     </tr>
                 </table>
 
-                <div style="font-weight: bold; color: #02006c; font-size: 12pt; margin-bottom: 10px;">Données Extraites du Classeur Excel</div>
+                <div style="font-weight: bold; color: #0a034a; font-size: 12pt; margin-bottom: 10px;">Données Extraites du Classeur Excel</div>
                 <table class="data-table">
                     <thead><tr>${headerHtml}</tr></thead>
                     <tbody>${bodyHtml}</tbody>
                 </table>
 
                 <div class="footer-section">
-                    <div style="float:left; font-size:8pt; color:#02006c; font-weight:bold;">
+                    <div style="float:left; font-size:8pt; color:#0a034a; font-weight:bold;">
                         ✓ Document Officiel Généré par ANTIC Excel-to-Word Converter
                     </div>
                     <div style="float:right; text-align:right; font-weight:bold; color:#0F172A;">
@@ -158,7 +158,7 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
             left: 0,
             width: '100vw',
             height: '100vh',
-            background: 'rgba(2, 0, 108, 0.65)',
+            background: 'rgba(10, 3, 74, 0.65)',
             backdropFilter: 'blur(10px)',
             display: 'flex',
             alignItems: 'center',
@@ -178,9 +178,9 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
                 overflow: 'hidden'
             }}>
 
-                {/* Navy Header Modal with #02006c */}
+                {/* Navy Header Modal with #0a034a */}
                 <div style={{
-                    background: '#02006c',
+                    background: '#0a034a',
                     color: '#FFFFFF',
                     padding: '1.25rem 1.75rem',
                     display: 'flex',
@@ -244,15 +244,15 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
                                             padding: '1rem',
                                             borderRadius: '16px',
                                             background: '#FFFFFF',
-                                            border: selectedTemplate === tpl.id ? '2px solid #02006c' : '1px solid #E2E8F0',
+                                            border: selectedTemplate === tpl.id ? '2px solid #0a034a' : '1px solid #E2E8F0',
                                             cursor: 'pointer',
                                             boxShadow: '0 2px 8px rgba(0,0,0,0.02)',
                                             transition: 'all 0.15s ease'
                                         }}
                                     >
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <strong style={{ fontSize: '0.85rem', color: selectedTemplate === tpl.id ? '#02006c' : '#0F172A' }}>{tpl.title}</strong>
-                                            {selectedTemplate === tpl.id && <Check size={18} color="#02006c" />}
+                                            <strong style={{ fontSize: '0.85rem', color: selectedTemplate === tpl.id ? '#0a034a' : '#0F172A' }}>{tpl.title}</strong>
+                                            {selectedTemplate === tpl.id && <Check size={18} color="#0a034a" />}
                                         </div>
                                         <p style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>
                                             {tpl.desc}
@@ -263,7 +263,7 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
                         </div>
 
                         <div style={{ background: '#FFFFFF', padding: '1rem', borderRadius: '16px', border: '1px solid #E2E8F0', fontSize: '0.775rem', color: '#475569', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            <div style={{ fontWeight: 800, color: '#02006c' }}>Certification de Conformité Documentaire</div>
+                            <div style={{ fontWeight: 800, color: '#0a034a' }}>Certification de Conformité Documentaire</div>
                             <div>• Extraction fidèle des {nonEmptyRows.length} lignes et colonnes de la feuille</div>
                             <div>• En-tête officiel de la République du Cameroun</div>
                             <div>• Style et bordures normalisés au format Word (.docx)</div>
@@ -290,21 +290,21 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
 
                             {/* Virtual Header Page 1 */}
                             <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #02006c', paddingBottom: '0.6rem', marginBottom: '1rem' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0a034a', paddingBottom: '0.6rem', marginBottom: '1rem' }}>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         <img src="/antic_logo.png" alt="ANTIC" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
                                         <div>
-                                            <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#02006c', lineHeight: 1 }}>ANTIC CAMEROUN</div>
+                                            <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#0a034a', lineHeight: 1 }}>ANTIC CAMEROUN</div>
                                             <div style={{ fontSize: '0.55rem', color: '#64748B' }}>Agence Nationale des TIC</div>
                                         </div>
                                     </div>
-                                    <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#02006c', background: 'rgba(2, 0, 108, 0.08)', padding: '2px 6px', borderRadius: '4px' }}>
+                                    <span style={{ fontSize: '0.6rem', fontWeight: 800, color: '#0a034a', background: 'rgba(10, 3, 74, 0.08)', padding: '2px 6px', borderRadius: '4px' }}>
                                         RAPPORT OFFICIEL
                                     </span>
                                 </div>
 
                                 {/* Doc Title */}
-                                <h4 style={{ textAlign: 'center', fontSize: '0.85rem', fontWeight: 900, color: '#02006c', margin: '0.75rem 0 0.25rem 0', textTransform: 'uppercase' }}>
+                                <h4 style={{ textAlign: 'center', fontSize: '0.85rem', fontWeight: 900, color: '#0a034a', margin: '0.75rem 0 0.25rem 0', textTransform: 'uppercase' }}>
                                     {workbook?.name ? workbook.name.replace(/\.[^/.]+$/, "") : "DOCUMENT DE SYNTHÈSE"}
                                 </h4>
                                 <p style={{ fontSize: '0.65rem', color: '#64748B', textAlign: 'center', marginBottom: '1.25rem', fontStyle: 'italic' }}>
@@ -312,7 +312,7 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
                                 </p>
 
                                 {/* REAL DYNAMIC EXCEL TO WORD TABLE PREVIEW */}
-                                <div style={{ overflowX: 'auto', border: '1px solid #02006c', borderRadius: '4px' }}>
+                                <div style={{ overflowX: 'auto', border: '1px solid #0a034a', borderRadius: '4px' }}>
                                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.6rem' }}>
                                         <tbody>
                                             {gridRows.map((row, rIdx) => {
@@ -357,7 +357,7 @@ export default function WordDocumentPreviewModal({ workbook, sheetName = 'Feuill
 
                             {/* Virtual Footer Signature */}
                             <div style={{ borderTop: '1px solid #E2E8F0', paddingTop: '0.75rem', marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.6rem' }}>
-                                <span style={{ color: '#02006c', fontWeight: 800 }}>✓ Cachet Électronique ANTIC Valide</span>
+                                <span style={{ color: '#0a034a', fontWeight: 800 }}>✓ Cachet Électronique ANTIC Valide</span>
                                 <span style={{ color: '#94A3B8' }}>Page 1 / 1</span>
                             </div>
 

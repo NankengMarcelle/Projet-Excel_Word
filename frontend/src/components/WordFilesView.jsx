@@ -51,31 +51,31 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                 <title>${doc.name}</title>
                 <style>
                     body { font-family: 'Calibri', 'Arial', sans-serif; font-size: 11pt; color: #0F172A; margin: 20mm; }
-                    .header { text-align: center; border-bottom: 2px solid #02006c; padding-bottom: 15px; margin-bottom: 20px; }
-                    .country-title { font-size: 9pt; font-weight: bold; color: #02006c; text-transform: uppercase; letter-spacing: 1px; }
+                    .header { text-align: center; border-bottom: 2px solid #0a034a; padding-bottom: 15px; margin-bottom: 20px; }
+                    .country-title { font-size: 9pt; font-weight: bold; color: #0a034a; text-transform: uppercase; letter-spacing: 1px; }
                     .motto { font-size: 8pt; color: #64748B; font-style: italic; margin-top: 2px; }
-                    .agency-name { font-size: 11pt; font-weight: bold; color: #02006c; margin-top: 8px; }
+                    .agency-name { font-size: 11pt; font-weight: bold; color: #0a034a; margin-top: 8px; }
                     .doc-title { font-size: 18pt; font-weight: bold; color: #0F172A; margin-top: 15px; text-transform: uppercase; text-decoration: underline; }
                     
                     .meta-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; background-color: #F8FAFC; border: 1px solid #CBD5E1; }
                     .meta-table td { padding: 8px 12px; font-size: 10pt; border: 1px solid #E2E8F0; }
-                    .meta-label { font-weight: bold; color: #02006c; }
+                    .meta-label { font-weight: bold; color: #0a034a; }
                     
-                    .section-header { font-size: 12pt; font-weight: bold; color: #02006c; margin-top: 20px; margin-bottom: 10px; }
+                    .section-header { font-size: 12pt; font-weight: bold; color: #0a034a; margin-top: 20px; margin-bottom: 10px; }
                     
-                    .data-table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 25px; border: 1px solid #02006c; }
-                    .data-table th { background-color: #02006c; color: #FFFFFF; font-weight: bold; padding: 10px; border: 1px solid #02006c; text-align: left; }
+                    .data-table { width: 100%; border-collapse: collapse; font-size: 10pt; margin-bottom: 25px; border: 1px solid #0a034a; }
+                    .data-table th { background-color: #0a034a; color: #FFFFFF; font-weight: bold; padding: 10px; border: 1px solid #0a034a; text-align: left; }
                     .data-table td { padding: 8px 10px; border: 1px solid #CBD5E1; }
                     .data-table tr:nth-child(even) { background-color: #F8FAFC; }
                     .total-row { background-color: #EEF2FF; font-weight: bold; }
                     
-                    .stamp-badge { background-color: #02006c; color: #FFFFFF; padding: 3px 8px; border-radius: 4px; font-size: 8pt; font-weight: bold; display: inline-block; }
+                    .stamp-badge { background-color: #0a034a; color: #FFFFFF; padding: 3px 8px; border-radius: 4px; font-size: 8pt; font-weight: bold; display: inline-block; }
                     
                     .footer-section { margin-top: 40px; padding-top: 15px; border-top: 1px dashed #CBD5E1; }
                     .signature-box { float: right; width: 250px; text-align: right; }
                     .signature-title { font-size: 10pt; font-weight: bold; color: #0F172A; }
                     .signature-sub { font-size: 9pt; color: #94A3B8; margin-top: 30px; }
-                    .crypto-hash { font-size: 8pt; color: #02006c; font-weight: bold; font-family: monospace; }
+                    .crypto-hash { font-size: 8pt; color: #0a034a; font-weight: bold; font-family: monospace; }
                 </style>
             </head>
             <body>
@@ -132,7 +132,7 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                         </tr>
                         <tr class="total-row">
                             <td colspan="2" style="text-align:right;"><b>TOTAL CUMULÉ</b></td>
-                            <td style="color:#02006c;"><b>275 500 000 FCFA</b></td>
+                            <td style="color:#0a034a;"><b>275 500 000 FCFA</b></td>
                             <td><b>Validé</b></td>
                         </tr>
                     </tbody>
@@ -183,7 +183,7 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                 borderBottom: '1px solid #E2E8F0'
             }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 800, color: '#02006c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 800, color: '#0a034a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                         <FileCheck2 size={16} /> {lang === 'fr' ? "Documents Word Générés" : "Generated Word Documents"}
                     </div>
                     <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0F172A', marginTop: '2px' }}>
@@ -235,8 +235,8 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                                 onClick={() => setSelectedWordDoc(null)}
                                 style={{
                                     background: '#FFFFFF',
-                                    color: '#02006c',
-                                    border: '1.5px solid #02006c',
+                                    color: '#0a034a',
+                                    border: '1.5px solid #0a034a',
                                     borderRadius: '12px',
                                     padding: '0.55rem 1.1rem',
                                     fontSize: '0.825rem',
@@ -245,7 +245,7 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '8px',
-                                    boxShadow: '0 2px 8px rgba(2, 0, 108, 0.06)',
+                                    boxShadow: '0 2px 8px rgba(10, 3, 74, 0.06)',
                                     transition: 'all 0.15s ease'
                                 }}
                             >
@@ -254,7 +254,7 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
 
                             <div>
                                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                    <FileText size={20} color="#02006c" />
+                                    <FileText size={20} color="#0a034a" />
                                     {selectedWordDoc.name}
                                 </h2>
                                 <div style={{ fontSize: '0.775rem', color: '#64748B', marginTop: '2px' }}>
@@ -267,7 +267,7 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                         <button
                             onClick={() => exportToWordDoc(selectedWordDoc)}
                             style={{
-                                background: '#02006c',
+                                background: '#0a034a',
                                 color: '#FFFFFF',
                                 border: 'none',
                                 borderRadius: '12px',
@@ -278,7 +278,7 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '8px',
-                                boxShadow: '0 4px 12px rgba(2, 0, 108, 0.18)'
+                                boxShadow: '0 4px 12px rgba(10, 3, 74, 0.18)'
                             }}
                         >
                             <Download size={16} /> {lang === 'fr' ? "Télécharger .docx" : "Download .docx"}
@@ -292,21 +292,21 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                             maxWidth: '860px',
                             background: '#FFFFFF',
                             borderRadius: '16px',
-                            boxShadow: '0 12px 35px rgba(2, 0, 108, 0.08)',
+                            boxShadow: '0 12px 35px rgba(10, 3, 74, 0.08)',
                             padding: '3.5rem',
                             border: '1px solid #CBD5E1',
                             fontFamily: 'sans-serif'
                         }}>
 
                             {/* Official ANTIC Document Header */}
-                            <div style={{ borderBottom: '2px solid #02006c', paddingBottom: '1.25rem', marginBottom: '1.5rem', textAlign: 'center' }}>
-                                <div style={{ fontSize: '0.725rem', fontWeight: 800, color: '#02006c', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                            <div style={{ borderBottom: '2px solid #0a034a', paddingBottom: '1.25rem', marginBottom: '1.5rem', textAlign: 'center' }}>
+                                <div style={{ fontSize: '0.725rem', fontWeight: 800, color: '#0a034a', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                                     REPUBLIQUE DU CAMEROUN • REPUBLIC OF CAMEROON
                                 </div>
                                 <div style={{ fontSize: '0.675rem', color: '#64748B', fontStyle: 'italic', marginTop: '2px' }}>
                                     Paix - Travail - Patrie / Peace - Work - Fatherland
                                 </div>
-                                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#02006c', marginTop: '8px' }}>
+                                <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#0a034a', marginTop: '8px' }}>
                                     AGENCE NATIONALE DES TECHNOLOGIES DE L'INFORMATION ET DE LA COMMUNICATION (ANTIC)
                                 </div>
                                 <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#0F172A', marginTop: '1.25rem', textTransform: 'uppercase', textDecoration: 'underline' }}>
@@ -333,17 +333,17 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
 
                             {/* Formatted Converted Data Table */}
                             <div style={{ marginBottom: '2rem' }}>
-                                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#02006c', marginBottom: '0.75rem' }}>
+                                <h4 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0a034a', marginBottom: '0.75rem' }}>
                                     {lang === 'fr' ? "1. Synthèse des Données Converties" : "1. Summary of Converted Data"}
                                 </h4>
 
                                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem', border: '1px solid #CBD5E1' }}>
                                     <thead>
-                                        <tr style={{ background: '#02006c', color: '#FFFFFF', textAlign: 'left' }}>
-                                            <th style={{ padding: '0.65rem 0.85rem', border: '1px solid #02006c' }}>Code / Ref</th>
-                                            <th style={{ padding: '0.65rem 0.85rem', border: '1px solid #02006c' }}>Libellé / Désignation</th>
-                                            <th style={{ padding: '0.65rem 0.85rem', border: '1px solid #02006c' }}>Prévisions (FCFA)</th>
-                                            <th style={{ padding: '0.65rem 0.85rem', border: '1px solid #02006c' }}>Statut Conformité</th>
+                                        <tr style={{ background: '#0a034a', color: '#FFFFFF', textAlign: 'left' }}>
+                                            <th style={{ padding: '0.65rem 0.85rem', border: '1px solid #0a034a' }}>Code / Ref</th>
+                                            <th style={{ padding: '0.65rem 0.85rem', border: '1px solid #0a034a' }}>Libellé / Désignation</th>
+                                            <th style={{ padding: '0.65rem 0.85rem', border: '1px solid #0a034a' }}>Prévisions (FCFA)</th>
+                                            <th style={{ padding: '0.65rem 0.85rem', border: '1px solid #0a034a' }}>Statut Conformité</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -365,9 +365,9 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                                             <td style={{ padding: '0.6rem 0.85rem', border: '1px solid #CBD5E1', fontWeight: 700 }}>42 000 000</td>
                                             <td style={{ padding: '0.6rem 0.85rem', border: '1px solid #CBD5E1', color: '#059669', fontWeight: 700 }}>En Déploiement</td>
                                         </tr>
-                                        <tr style={{ background: 'rgba(2, 0, 108, 0.06)', fontWeight: 800 }}>
+                                        <tr style={{ background: 'rgba(10, 3, 74, 0.06)', fontWeight: 800 }}>
                                             <td colSpan={2} style={{ padding: '0.65rem 0.85rem', border: '1px solid #CBD5E1', textAlign: 'right' }}>TOTAL CUMULÉ</td>
-                                            <td style={{ padding: '0.65rem 0.85rem', border: '1px solid #CBD5E1', color: '#02006c' }}>275 500 000 FCFA</td>
+                                            <td style={{ padding: '0.65rem 0.85rem', border: '1px solid #CBD5E1', color: '#0a034a' }}>275 500 000 FCFA</td>
                                             <td style={{ padding: '0.65rem 0.85rem', border: '1px solid #CBD5E1' }}>Validé</td>
                                         </tr>
                                     </tbody>
@@ -380,7 +380,7 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                                     <div style={{ fontSize: '0.725rem', color: '#64748B' }}>
                                         Signature Électronique Certifiée
                                     </div>
-                                    <div style={{ fontSize: '0.775rem', fontWeight: 800, color: '#02006c', marginTop: '2px' }}>
+                                    <div style={{ fontSize: '0.775rem', fontWeight: 800, color: '#0a034a', marginTop: '2px' }}>
                                         Empreinte SHA-256 : 8f9a4b2c...e901
                                     </div>
                                 </div>
@@ -410,11 +410,11 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                     fontSize: '0.85rem',
                     borderRadius: '16px',
                     overflow: 'hidden',
-                    boxShadow: '0 4px 20px rgba(2, 0, 108, 0.05)',
+                    boxShadow: '0 4px 20px rgba(10, 3, 74, 0.05)',
                     background: '#FFFFFF'
                 }}>
                     <thead>
-                        <tr style={{ background: '#02006c', color: '#FFFFFF' }}>
+                        <tr style={{ background: '#0a034a', color: '#FFFFFF' }}>
                             <th style={{ padding: '1rem 1.25rem', fontWeight: 800 }}>{lang === 'fr' ? 'Document Word (.docx)' : 'Word Document (.docx)'}</th>
                             <th style={{ padding: '1rem 1.25rem', fontWeight: 800 }}>{lang === 'fr' ? 'Source Excel' : 'Excel Source'}</th>
                             <th style={{ padding: '1rem 1.25rem', fontWeight: 800 }}>{lang === 'fr' ? 'Modèle Officiel' : 'Official Template'}</th>
@@ -439,11 +439,11 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                                             width: '36px',
                                             height: '36px',
                                             borderRadius: '10px',
-                                            background: 'rgba(2, 0, 108, 0.08)',
+                                            background: 'rgba(10, 3, 74, 0.08)',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',
-                                            color: '#02006c',
+                                            color: '#0a034a',
                                             flexShrink: 0
                                         }}>
                                             <FileText size={20} />
@@ -488,7 +488,7 @@ export default function WordFilesView({ conversions, onSelectWorkbook, lang = 'f
                                         <button
                                             onClick={() => exportToWordDoc(doc)}
                                             style={{
-                                                background: '#02006c',
+                                                background: '#0a034a',
                                                 color: '#FFFFFF',
                                                 border: 'none',
                                                 borderRadius: '10px',

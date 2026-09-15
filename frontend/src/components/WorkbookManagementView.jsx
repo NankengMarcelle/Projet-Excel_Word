@@ -17,8 +17,8 @@ export default function WorkbookManagementView({ workbooks, onSelectWorkbook, on
                 paddingBottom: '1.25rem'
             }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 800, color: '#02006c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        <FileSpreadsheet size={16} color="#02006c" /> {lang === 'fr' ? "Fichiers Excel & Propriétés" : "Excel Files & Properties"}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 800, color: '#0a034a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <FileSpreadsheet size={16} color="#0a034a" /> {lang === 'fr' ? "Fichiers Excel & Propriétés" : "Excel Files & Properties"}
                     </div>
                     <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0F172A', marginTop: '2px' }}>
                         {lang === 'fr' ? "Gestion des Fichiers Excel" : "Excel File Management"}
@@ -70,7 +70,7 @@ export default function WorkbookManagementView({ workbooks, onSelectWorkbook, on
                                         onMouseLeave={(e) => { e.currentTarget.style.background = '#FFFFFF'; }}
                                     >
                                         <div style={{ flex: 2, minWidth: 0, display: 'flex', alignItems: 'center', gap: '12px', overflow: 'hidden' }}>
-                                            <FileSpreadsheet size={18} color="#02006c" style={{ minWidth: '18px', flexShrink: 0 }} />
+                                            <FileSpreadsheet size={18} color="#0a034a" style={{ minWidth: '18px', flexShrink: 0 }} />
                                             <span style={{ fontWeight: 600, fontSize: '0.85rem', color: '#0F172A', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }} title={wb.name}>
                                                 {wb.name}
                                             </span>
@@ -84,7 +84,7 @@ export default function WorkbookManagementView({ workbooks, onSelectWorkbook, on
                                         </div>
 
                                         <div style={{ flex: 0.8, minWidth: 0, fontSize: '0.8rem', color: '#64748B', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
-                                            <span style={{ fontWeight: 600, color: '#02006c' }}>{wb.sheets?.length || 1}</span> {lang === 'fr' ? 'feuille(s)' : 'sheet(s)'}
+                                            <span style={{ fontWeight: 600, color: '#0a034a' }}>{wb.sheets?.length || 1}</span> {lang === 'fr' ? 'feuille(s)' : 'sheet(s)'}
                                         </div>
 
                                         <div style={{ flex: 0.8, minWidth: 0, fontSize: '0.8rem', color: '#64748B', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>
@@ -111,7 +111,7 @@ export default function WorkbookManagementView({ workbooks, onSelectWorkbook, on
                                                     onOpenConvertModal(wb);
                                                 }}
                                                 className="btn-pill-light"
-                                                style={{ fontSize: '0.75rem', padding: '4px 10px', background: '#02006c', color: 'white', display: 'flex', alignItems: 'center', border: 'none' }}
+                                                style={{ fontSize: '0.75rem', padding: '4px 10px', background: '#0a034a', color: 'white', display: 'flex', alignItems: 'center', border: 'none' }}
                                                 title={lang === 'fr' ? 'Exporter au format Word' : 'Export to Word'}
                                             >
                                                 <Download size={13} style={{ marginRight: '4px' }} />
@@ -124,7 +124,7 @@ export default function WorkbookManagementView({ workbooks, onSelectWorkbook, on
                                                     onSelectWorkbook(wb);
                                                 }}
                                                 className="btn-pill-light"
-                                                style={{ fontSize: '0.75rem', padding: '4px 10px', border: '1px solid #02006c', color: '#02006c', display: 'flex', alignItems: 'center', background: 'transparent' }}
+                                                style={{ fontSize: '0.75rem', padding: '4px 10px', border: '1px solid #0a034a', color: '#0a034a', display: 'flex', alignItems: 'center', background: 'transparent' }}
                                                 title={lang === 'fr' ? 'Éditer le classeur' : 'Edit Workbook'}
                                             >
                                                 <FileSpreadsheet size={13} style={{ marginRight: '4px' }} />

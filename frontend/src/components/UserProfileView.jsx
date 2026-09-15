@@ -97,7 +97,7 @@ export default function UserProfileView({ currentUser, userPhoto, setUserPhoto, 
                             alignItems: 'center',
                             justifyContent: 'center',
                             overflow: 'hidden',
-                            color: '#02006c',
+                            color: '#0a034a',
                             fontSize: '2rem',
                             fontWeight: 700
                         }}>
@@ -127,7 +127,7 @@ export default function UserProfileView({ currentUser, userPhoto, setUserPhoto, 
                                 width: '30px',
                                 height: '30px',
                                 borderRadius: '50%',
-                                background: '#02006c',
+                                background: '#0a034a',
                                 color: '#FFFFFF',
                                 border: '2px solid #FFFFFF',
                                 cursor: 'pointer',
@@ -156,7 +156,7 @@ export default function UserProfileView({ currentUser, userPhoto, setUserPhoto, 
                     {/* Personal Info Form */}
                     <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <User size={16} color="#02006c" /> {lang === 'fr' ? "Informations Personnelles" : "Personal Information"}
+                            <User size={16} color="#0a034a" /> {lang === 'fr' ? "Informations Personnelles" : "Personal Information"}
                         </h3>
 
                         <div>
@@ -207,7 +207,7 @@ export default function UserProfileView({ currentUser, userPhoto, setUserPhoto, 
                         <button
                             type="submit"
                             style={{
-                                marginTop: '1rem', background: '#02006c', color: '#FFFFFF', border: 'none',
+                                marginTop: '1rem', background: '#0a034a', color: '#FFFFFF', border: 'none',
                                 borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: 700, fontSize: '0.85rem',
                                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                 alignSelf: 'flex-start'
@@ -220,7 +220,7 @@ export default function UserProfileView({ currentUser, userPhoto, setUserPhoto, 
                     {/* Security Form */}
                     <form onSubmit={handlePasswordSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                         <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#0F172A', marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Lock size={16} color="#02006c" /> {lang === 'fr' ? "Sécurité" : "Security"}
+                            <Lock size={16} color="#0a034a" /> {lang === 'fr' ? "Sécurité" : "Security"}
                         </h3>
 
                         <div>
@@ -275,7 +275,7 @@ export default function UserProfileView({ currentUser, userPhoto, setUserPhoto, 
                         <button
                             type="submit"
                             style={{
-                                marginTop: '1rem', background: '#F8FAFC', color: '#02006c', border: '1px solid #E2E8F0',
+                                marginTop: '1rem', background: '#F8FAFC', color: '#0a034a', border: '1px solid #E2E8F0',
                                 borderRadius: '10px', padding: '0.75rem 1.5rem', fontWeight: 700, fontSize: '0.85rem',
                                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                                 alignSelf: 'flex-start',

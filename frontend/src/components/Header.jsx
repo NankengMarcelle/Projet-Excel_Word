@@ -21,7 +21,7 @@ export default function Header({ currentUser, userPhoto, activeView, setActiveVi
 
             {/* Left Search Pill Bar */}
             <div style={{ position: 'relative', width: '380px' }}>
-                <Search size={16} color="#02006c" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
+                <Search size={16} color="#0a034a" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
                 <input
                     type="text"
                     placeholder={lang === 'fr' ? "Rechercher un classeur Excel, rapport Word..." : "Search workbook..."}
@@ -33,7 +33,7 @@ export default function Header({ currentUser, userPhoto, activeView, setActiveVi
                         background: '#F1F5F9',
                         fontSize: '0.825rem',
                         outline: 'none',
-                        color: '#02006c',
+                        color: '#0a034a',
                         fontWeight: 600
                     }}
                 />
@@ -57,8 +57,8 @@ export default function Header({ currentUser, userPhoto, activeView, setActiveVi
                             padding: '0.25rem 0.65rem',
                             borderRadius: '16px',
                             border: 'none',
-                            background: lang === 'fr' ? '#02006c' : 'transparent',
-                            color: lang === 'fr' ? '#FFFFFF' : '#02006c',
+                            background: lang === 'fr' ? '#0a034a' : 'transparent',
+                            color: lang === 'fr' ? '#FFFFFF' : '#0a034a',
                             fontWeight: 800,
                             fontSize: '0.725rem',
                             cursor: 'pointer'
@@ -72,8 +72,8 @@ export default function Header({ currentUser, userPhoto, activeView, setActiveVi
                             padding: '0.25rem 0.65rem',
                             borderRadius: '16px',
                             border: 'none',
-                            background: lang === 'en' ? '#02006c' : 'transparent',
-                            color: lang === 'en' ? '#FFFFFF' : '#02006c',
+                            background: lang === 'en' ? '#0a034a' : 'transparent',
+                            color: lang === 'en' ? '#FFFFFF' : '#0a034a',
                             fontWeight: 800,
                             fontSize: '0.725rem',
                             cursor: 'pointer'
@@ -91,8 +91,8 @@ export default function Header({ currentUser, userPhoto, activeView, setActiveVi
                         height: '38px',
                         borderRadius: '50%',
                         border: '1px solid #CBD5E1',
-                        background: activeView === 'notifications' ? '#02006c' : '#F1F5F9',
-                        color: activeView === 'notifications' ? '#FFFFFF' : '#02006c',
+                        background: activeView === 'notifications' ? '#0a034a' : '#F1F5F9',
+                        color: activeView === 'notifications' ? '#FFFFFF' : '#0a034a',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -100,7 +100,7 @@ export default function Header({ currentUser, userPhoto, activeView, setActiveVi
                         position: 'relative'
                     }}
                 >
-                    <Bell size={18} color={activeView === 'notifications' ? '#FFFFFF' : '#02006c'} />
+                    <Bell size={18} color={activeView === 'notifications' ? '#FFFFFF' : '#0a034a'} />
                     <span style={{
                         position: 'absolute',
                         top: '4px',
@@ -108,7 +108,7 @@ export default function Header({ currentUser, userPhoto, activeView, setActiveVi
                         width: '8px',
                         height: '8px',
                         borderRadius: '50%',
-                        background: '#02006c',
+                        background: '#0a034a',
                         border: '1.5px solid #FFF'
                     }} />
                 </button>
@@ -132,7 +132,7 @@ export default function Header({ currentUser, userPhoto, activeView, setActiveVi
                         width: '32px',
                         height: '32px',
                         borderRadius: '50%',
-                        background: '#02006c',
+                        background: '#0a034a',
                         color: '#FFFFFF',
                         fontWeight: 800,
                         fontSize: '0.775rem',
@@ -149,11 +149,11 @@ export default function Header({ currentUser, userPhoto, activeView, setActiveVi
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#02006c', lineHeight: 1.1 }}>
+                        <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#0a034a', lineHeight: 1.1 }}>
                             {userName}
                         </span>
                         <span style={{ fontSize: '0.65rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '3px' }}>
-                            <ShieldCheck size={11} color="#02006c" /> ANTIC Worker
+                            <ShieldCheck size={11} color="#0a034a" /> ANTIC Worker
                         </span>
                     </div>
                 </div>

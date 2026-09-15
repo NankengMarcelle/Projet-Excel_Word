@@ -234,7 +234,7 @@ export default function App() {
   return (
     <div style={{ minHeight: '100vh', background: '#F8FAFC', display: 'flex' }}>
 
-      {/* Deep Imperial Navy Left Sidebar (#02006c) */}
+      {/* Deep Imperial Navy Left Sidebar (#0a034a) */}
       <Sidebar
         activeView={activeView}
         setActiveView={setActiveView}

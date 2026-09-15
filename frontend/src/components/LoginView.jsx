@@ -36,7 +36,7 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
         <div style={{
             width: '100vw',
             minHeight: '100vh',
-            background: 'linear-gradient(135deg, rgba(2, 0, 108, 0.85) 0%, rgba(1, 0, 74, 0.9) 100%), url("/login_bg_navy.png") center/cover no-repeat',
+            background: 'linear-gradient(135deg, rgba(10, 3, 74, 0.85) 0%, rgba(1, 0, 74, 0.9) 100%), url("/login_bg_navy.png") center/cover no-repeat',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -88,7 +88,7 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
                         borderRadius: '16px',
                         border: 'none',
                         background: lang === 'fr' ? '#FFFFFF' : 'transparent',
-                        color: lang === 'fr' ? '#02006c' : '#FFFFFF',
+                        color: lang === 'fr' ? '#0a034a' : '#FFFFFF',
                         fontWeight: 800,
                         fontSize: '0.75rem',
                         cursor: 'pointer'
@@ -103,7 +103,7 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
                         borderRadius: '16px',
                         border: 'none',
                         background: lang === 'en' ? '#FFFFFF' : 'transparent',
-                        color: lang === 'en' ? '#02006c' : '#FFFFFF',
+                        color: lang === 'en' ? '#0a034a' : '#FFFFFF',
                         fontWeight: 800,
                         fontSize: '0.75rem',
                         cursor: 'pointer'
@@ -166,7 +166,7 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
                                 {lang === 'fr' ? "Nom et Prénom de l'Agent" : "Agent Full Name"}
                             </label>
                             <div style={{ position: 'relative' }}>
-                                <User size={18} color="#02006c" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                                <User size={18} color="#0a034a" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
                                 <input
                                     type="text"
                                     required
@@ -195,7 +195,7 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
                             {lang === 'fr' ? "Identifiant / Email Professionnel (@antic.cm)" : "Agent ID / Professional Email (@antic.cm)"}
                         </label>
                         <div style={{ position: 'relative' }}>
-                            <User size={18} color="#02006c" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                            <User size={18} color="#0a034a" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
                             <input
                                 type="email"
                                 required
@@ -222,7 +222,7 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
                             {lang === 'fr' ? "Mot de Passe Agent" : "Agent Password"}
                         </label>
                         <div style={{ position: 'relative' }}>
-                            <Lock size={18} color="#02006c" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                            <Lock size={18} color="#0a034a" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
                             <input
                                 type={showPassword ? "text" : "password"}
                                 required
@@ -252,7 +252,7 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
                                     transform: 'translateY(-50%)',
                                     background: 'none',
                                     border: 'none',
-                                    color: '#02006c',
+                                    color: '#0a034a',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
@@ -271,7 +271,7 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
                                 {lang === 'fr' ? "Confirmer le Mot de Passe" : "Confirm Password"}
                             </label>
                             <div style={{ position: 'relative' }}>
-                                <Lock size={18} color="#02006c" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                                <Lock size={18} color="#0a034a" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     required
@@ -302,7 +302,7 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
                             borderRadius: '16px',
                             border: 'none',
                             background: '#FFFFFF',
-                            color: '#02006c',
+                            color: '#0a034a',
                             fontWeight: 800,
                             fontSize: '0.9rem',
                             cursor: 'pointer',

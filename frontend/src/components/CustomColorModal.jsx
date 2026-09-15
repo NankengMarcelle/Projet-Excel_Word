@@ -215,7 +215,7 @@ export default function CustomColorModal({ initialColor = '#FF0000', onApply, on
                     <button onClick={onClose} style={{ padding: '6px 16px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', fontSize: '0.8rem', fontWeight: 600, cursor: 'pointer' }}>
                         Cancel
                     </button>
-                    <button onClick={() => { onApply(currentColorHex); onClose(); }} style={{ padding: '6px 18px', borderRadius: '6px', border: 'none', background: '#02006c', color: '#FFF', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
+                    <button onClick={() => { onApply(currentColorHex); onClose(); }} style={{ padding: '6px 18px', borderRadius: '6px', border: 'none', background: '#0a034a', color: '#FFF', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
                         OK
                     </button>
                 </div>

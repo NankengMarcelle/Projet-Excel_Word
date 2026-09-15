@@ -26,7 +26,7 @@ export default function DashboardView({
             display: 'flex',
             flexDirection: 'column',
             gap: '2.5rem',
-            background: 'radial-gradient(circle at 10% 10%, rgba(2, 0, 108, 0.02) 0%, transparent 40%), radial-gradient(circle at 90% 90%, rgba(16, 185, 129, 0.02) 0%, transparent 40%), #FAFAFC',
+            background: 'radial-gradient(circle at 10% 10%, rgba(10, 3, 74, 0.02) 0%, transparent 40%), radial-gradient(circle at 90% 90%, rgba(16, 185, 129, 0.02) 0%, transparent 40%), #FAFAFC',
             minHeight: 'calc(100vh - 65px)',
             width: '100%',
             fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
@@ -41,7 +41,7 @@ export default function DashboardView({
                 borderBottom: '1px solid #F1F5F9'
             }}>
                 <div>
-                    <h1 style={{ fontSize: '2.25rem', fontWeight: 800, background: 'linear-gradient(90deg, #0F172A 0%, #02006c 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.03em', margin: 0 }}>
+                    <h1 style={{ fontSize: '2.25rem', fontWeight: 800, background: 'linear-gradient(90deg, #0F172A 0%, #0a034a 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.03em', margin: 0 }}>
                         {lang === 'fr' ? `Bonjour, ${currentUser?.name || 'Pierre Marcelle Nankeng'}.` : `Hello, ${currentUser?.name || 'Pierre Marcelle Nankeng'}.`}
                     </h1>
                     <p style={{ fontSize: '0.95rem', color: '#64748B', marginTop: '10px', margin: '10px 0 0 0', fontWeight: 400 }}>
@@ -54,7 +54,7 @@ export default function DashboardView({
                 <button
                     onClick={onCreateNewWorkbook || onOpenUploadModal}
                     style={{
-                        background: 'linear-gradient(135deg, #02006c 0%, #1e3a8a 100%)',
+                        background: 'linear-gradient(135deg, #0a034a 0%, #1e3a8a 100%)',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: '12px',
@@ -65,16 +65,16 @@ export default function DashboardView({
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        boxShadow: '0 4px 15px rgba(2, 0, 108, 0.2)',
+                        boxShadow: '0 4px 15px rgba(10, 3, 74, 0.2)',
                         transition: 'all 0.25s ease', // Enhanced smooth transition
                     }}
                     onMouseOver={(e) => {
                         e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(2, 0, 108, 0.35)'; // Added glowing hover effect
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(10, 3, 74, 0.35)'; // Added glowing hover effect
                     }}
                     onMouseOut={(e) => {
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(2, 0, 108, 0.2)';
+                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(10, 3, 74, 0.2)';
                     }}
                 >
                     <Upload size={16} /> {lang === 'fr' ? "Nouveau Classeur" : "New Workbook"}
@@ -101,8 +101,8 @@ export default function DashboardView({
                 >
                     <div>
                         <div style={{ fontSize: '0.825rem', fontWeight: 600, color: '#64748B', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <div style={{ padding: '6px', background: 'rgba(2, 0, 108, 0.08)', borderRadius: '8px', display: 'flex' }}>
-                                <FileSpreadsheet size={16} color="#02006c" />
+                            <div style={{ padding: '6px', background: 'rgba(10, 3, 74, 0.08)', borderRadius: '8px', display: 'flex' }}>
+                                <FileSpreadsheet size={16} color="#0a034a" />
                             </div>
                             {lang === 'fr' ? "Fichiers Excel" : "Excel Files"}
                         </div>
@@ -188,8 +188,8 @@ export default function DashboardView({
                                             width: '42px',
                                             height: '42px',
                                             borderRadius: '12px',
-                                            background: isHovered ? 'rgba(2, 0, 108, 0.05)' : '#F1F5F9',
-                                            color: isHovered ? '#02006c' : '#64748B',
+                                            background: isHovered ? 'rgba(10, 3, 74, 0.05)' : '#F1F5F9',
+                                            color: isHovered ? '#0a034a' : '#64748B',
                                             display: 'flex',
                                             alignItems: 'center',
                                             justifyContent: 'center',

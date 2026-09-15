@@ -73,14 +73,14 @@ function CustomTooltip({ text, position = 'bottom', children }) {
                     bottom: position === 'top' ? 'calc(100% + 8px)' : 'auto',
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    background: '#02006c',
+                    background: '#0a034a',
                     color: '#FFFFFF',
                     padding: '6px 12px',
                     borderRadius: '8px',
                     fontSize: '0.75rem',
                     fontWeight: 700,
                     whiteSpace: 'nowrap',
-                    boxShadow: '0 10px 25px rgba(2, 0, 108, 0.35)',
+                    boxShadow: '0 10px 25px rgba(10, 3, 74, 0.35)',
                     border: '1px solid rgba(255, 255, 255, 0.25)',
                     zIndex: 99999,
                     pointerEvents: 'none'
@@ -94,7 +94,7 @@ function CustomTooltip({ text, position = 'bottom', children }) {
                         transform: 'translateX(-50%) rotate(45deg)',
                         width: '8px',
                         height: '8px',
-                        background: '#02006c',
+                        background: '#0a034a',
                         borderTop: position === 'bottom' ? '1px solid rgba(255, 255, 255, 0.25)' : 'none',
                         borderLeft: position === 'bottom' ? '1px solid rgba(255, 255, 255, 0.25)' : 'none',
                         borderBottom: position === 'top' ? '1px solid rgba(255, 255, 255, 0.25)' : 'none',
@@ -1881,7 +1881,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         <div onMouseUp={handleCellMouseUp} style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 65px)', background: '#FFFFFF', position: 'relative' }}>
 
             {/* Header Bar */}
-            <div style={{ height: '54px', background: '#02006c', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.25rem' }}>
+            <div style={{ height: '54px', background: '#0a034a', color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 1.25rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(255, 255, 255, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <FileSpreadsheet size={18} color="#FFFFFF" />
@@ -1892,7 +1892,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <button onClick={handleCreateNewFile} style={{ background: '#FFFFFF', color: '#02006c', border: 'none', borderRadius: '10px', padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)', transition: 'all 0.2s ease' }}>
+                    <button onClick={handleCreateNewFile} style={{ background: '#FFFFFF', color: '#0a034a', border: 'none', borderRadius: '10px', padding: '0.45rem 0.85rem', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.4rem', boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)', transition: 'all 0.2s ease' }}>
                         <Plus size={14} /><span>Nouveau</span>
                     </button>
                     <div style={{ width: '1px', height: '24px', background: 'rgba(255, 255, 255, 0.2)', margin: '0 4px' }} />
@@ -1918,7 +1918,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
 
                 {/* Undo / Redo Buttons */}
                 <CustomTooltip text="Annuler (Ctrl+Z)">
-                    <button onClick={handleUndo} disabled={historyStack.length === 0} style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', color: historyStack.length > 0 ? '#02006c' : '#94A3B8', cursor: historyStack.length > 0 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center' }}>
+                    <button onClick={handleUndo} disabled={historyStack.length === 0} style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', color: historyStack.length > 0 ? '#0a034a' : '#94A3B8', cursor: historyStack.length > 0 ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center' }}>
                         <Undo2 size={15} />
                     </button>
                 </CustomTooltip>
@@ -1933,9 +1933,9 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 {/* Row Dropdown Menu */}
                 <div style={{ position: 'relative' }}>
                     <CustomTooltip text="Options des Lignes">
-                        <button onClick={() => setActiveMenu(activeMenu === 'row' ? null : 'row')} style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', color: '#02006c', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                        <button onClick={() => setActiveMenu(activeMenu === 'row' ? null : 'row')} style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', color: '#0a034a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', width: '14px' }}>
-                                <div style={{ height: '2px', background: '#02006c' }} /><div style={{ height: '2px', background: '#02006c' }} /><div style={{ height: '2px', background: '#02006c' }} />
+                                <div style={{ height: '2px', background: '#0a034a' }} /><div style={{ height: '2px', background: '#0a034a' }} /><div style={{ height: '2px', background: '#0a034a' }} />
                             </div>
                             <ChevronDown size={14} />
                         </button>
@@ -1956,7 +1956,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             <div onClick={handleFillLeft} className="menu-item" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer' }}>Fill Left</div>
                             <div onClick={handleFillRandom} className="menu-item" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer' }}>Fill Random Number...</div>
                             <div style={{ height: '1px', background: '#E2E8F0', margin: '4px 0' }} />
-                            <div onClick={() => { setFrozenRow(!frozenRow); setActiveMenu(null); }} className="menu-item" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 700, color: '#02006c' }}>
+                            <div onClick={() => { setFrozenRow(!frozenRow); setActiveMenu(null); }} className="menu-item" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 700, color: '#0a034a' }}>
                                 {frozenRow ? 'Unfreeze First Row' : 'Freeze First Row'}
                             </div>
                         </div>
@@ -1966,9 +1966,9 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 {/* Column Dropdown Menu */}
                 <div style={{ position: 'relative' }}>
                     <CustomTooltip text="Options des Colonnes">
-                        <button onClick={() => setActiveMenu(activeMenu === 'col' ? null : 'col')} style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', color: '#02006c', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
+                        <button onClick={() => setActiveMenu(activeMenu === 'col' ? null : 'col')} style={{ padding: '5px 8px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', color: '#0a034a', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700 }}>
                             <div style={{ display: 'flex', gap: '2px', height: '14px' }}>
-                                <div style={{ width: '2px', background: '#02006c' }} /><div style={{ width: '2px', background: '#02006c' }} /><div style={{ width: '2px', background: '#02006c' }} />
+                                <div style={{ width: '2px', background: '#0a034a' }} /><div style={{ width: '2px', background: '#0a034a' }} /><div style={{ width: '2px', background: '#0a034a' }} />
                             </div>
                             <ChevronDown size={14} />
                         </button>
@@ -1989,7 +1989,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             <div onClick={handleFillLeft} className="menu-item" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer' }}>Fill Left</div>
                             <div onClick={handleFillRandom} className="menu-item" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer' }}>Fill Random Number...</div>
                             <div style={{ height: '1px', background: '#E2E8F0', margin: '4px 0' }} />
-                            <div onClick={() => { setFrozenCol(!frozenCol); setActiveMenu(null); }} className="menu-item" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 700, color: '#02006c' }}>
+                            <div onClick={() => { setFrozenCol(!frozenCol); setActiveMenu(null); }} className="menu-item" style={{ padding: '8px 16px', fontSize: '0.8rem', cursor: 'pointer', fontWeight: 700, color: '#0a034a' }}>
                                 {frozenCol ? 'Unfreeze First Column' : 'Freeze First Column'}
                             </div>
                         </div>
@@ -2004,7 +2004,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 </select>
 
                 {/* Font Size Input */}
-                <input type="text" list="font-size-presets" value={fontSizeNum} onChange={(e) => applyFontSize(e.target.value)} style={{ width: '50px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', fontSize: '0.775rem', fontWeight: 800, textAlign: 'center', color: '#02006c' }} />
+                <input type="text" list="font-size-presets" value={fontSizeNum} onChange={(e) => applyFontSize(e.target.value)} style={{ width: '50px', padding: '4px 6px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#FFF', fontSize: '0.775rem', fontWeight: 800, textAlign: 'center', color: '#0a034a' }} />
                 <datalist id="font-size-presets">{PRESET_FONT_SIZES.map(s => <option key={s} value={String(s)} />)}</datalist>
 
                 <div style={{ width: '1px', height: '22px', background: '#CBD5E1' }} />
@@ -2047,7 +2047,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             borderRadius: '6px',
                             border: '1px solid #CBD5E1',
                             background: cellStyles[`${minR}_${minC}`]?.align === 'left' || !cellStyles[`${minR}_${minC}`]?.align ? '#E0E7FF' : '#FFF',
-                            color: cellStyles[`${minR}_${minC}`]?.align === 'left' || !cellStyles[`${minR}_${minC}`]?.align ? '#02006c' : '#0F172A',
+                            color: cellStyles[`${minR}_${minC}`]?.align === 'left' || !cellStyles[`${minR}_${minC}`]?.align ? '#0a034a' : '#0F172A',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center'
@@ -2065,7 +2065,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             borderRadius: '6px',
                             border: '1px solid #CBD5E1',
                             background: cellStyles[`${minR}_${minC}`]?.align === 'center' ? '#E0E7FF' : '#FFF',
-                            color: cellStyles[`${minR}_${minC}`]?.align === 'center' ? '#02006c' : '#0F172A',
+                            color: cellStyles[`${minR}_${minC}`]?.align === 'center' ? '#0a034a' : '#0F172A',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center'
@@ -2083,7 +2083,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             borderRadius: '6px',
                             border: '1px solid #CBD5E1',
                             background: cellStyles[`${minR}_${minC}`]?.align === 'right' ? '#E0E7FF' : '#FFF',
-                            color: cellStyles[`${minR}_${minC}`]?.align === 'right' ? '#02006c' : '#0F172A',
+                            color: cellStyles[`${minR}_${minC}`]?.align === 'right' ? '#0a034a' : '#0F172A',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center'
@@ -2104,7 +2104,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             borderRadius: '6px',
                             border: '1px solid #CBD5E1',
                             background: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'top' ? '#E0E7FF' : '#FFF',
-                            color: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'top' ? '#02006c' : '#0F172A',
+                            color: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'top' ? '#0a034a' : '#0F172A',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center'
@@ -2126,7 +2126,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             borderRadius: '6px',
                             border: '1px solid #CBD5E1',
                             background: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'middle' || !cellStyles[`${minR}_${minC}`]?.verticalAlign ? '#E0E7FF' : '#FFF',
-                            color: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'middle' || !cellStyles[`${minR}_${minC}`]?.verticalAlign ? '#02006c' : '#0F172A',
+                            color: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'middle' || !cellStyles[`${minR}_${minC}`]?.verticalAlign ? '#0a034a' : '#0F172A',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center'
@@ -2150,7 +2150,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             borderRadius: '6px',
                             border: '1px solid #CBD5E1',
                             background: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'bottom' ? '#E0E7FF' : '#FFF',
-                            color: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'bottom' ? '#02006c' : '#0F172A',
+                            color: cellStyles[`${minR}_${minC}`]?.verticalAlign === 'bottom' ? '#0a034a' : '#0F172A',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center'
@@ -2175,7 +2175,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             borderRadius: '6px',
                             border: '1px solid #CBD5E1',
                             background: cellStyles[`${minR}_${minC}`]?.wrapText ? '#E0E7FF' : '#FFF',
-                            color: cellStyles[`${minR}_${minC}`]?.wrapText ? '#02006c' : '#0F172A',
+                            color: cellStyles[`${minR}_${minC}`]?.wrapText ? '#0a034a' : '#0F172A',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center'
@@ -2207,7 +2207,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             borderRadius: '6px',
                             border: '1px solid #CBD5E1',
                             background: '#FFF',
-                            color: '#02006c',
+                            color: '#0a034a',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -2231,14 +2231,14 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             width: '34px',
                             height: '34px',
                             borderRadius: '8px',
-                            border: '1px solid #02006c',
-                            background: '#02006c',
+                            border: '1px solid #0a034a',
+                            background: '#0a034a',
                             color: '#FFFFFF',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            boxShadow: '0 2px 4px rgba(2, 0, 108, 0.15)',
+                            boxShadow: '0 2px 4px rgba(10, 3, 74, 0.15)',
                             transition: 'all 0.2s ease'
                         }}
                     >
@@ -2264,7 +2264,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             borderRadius: '8px',
                             border: '1px solid #CBD5E1',
                             background: '#FFFFFF',
-                            color: '#02006c',
+                            color: '#0a034a',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
@@ -2274,9 +2274,9 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             transition: 'all 0.2s ease'
                         }}
                     >
-                        <Filter size={17} color="#02006c" />
+                        <Filter size={17} color="#0a034a" />
                         <span style={{
-                            background: '#02006c',
+                            background: '#0a034a',
                             color: '#FFF',
                             fontSize: '0.675rem',
                             fontWeight: 800,
@@ -2291,10 +2291,10 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
 
             {/* Level 3 Formula Bar */}
             <div style={{ height: '42px', background: '#FFF', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', padding: '0 1rem', gap: '0.6rem', position: 'relative', zIndex: 15 }}>
-                <div style={{ width: '74px', fontWeight: 800, color: '#02006c', fontSize: '0.775rem', textAlign: 'center', background: 'rgba(2, 0, 108, 0.08)', padding: '4px 0', borderRadius: '6px', border: '1px solid rgba(2, 0, 108, 0.2)' }}>
+                <div style={{ width: '74px', fontWeight: 800, color: '#0a034a', fontSize: '0.775rem', textAlign: 'center', background: 'rgba(10, 3, 74, 0.08)', padding: '4px 0', borderRadius: '6px', border: '1px solid rgba(10, 3, 74, 0.2)' }}>
                     {minR === maxR && minC === maxC ? `${getColLabel(minC)}${minR + 1}` : `${getColLabel(minC)}${minR + 1}:${getColLabel(maxC)}${maxR + 1}`}
                 </div>
-                <span style={{ fontWeight: 900, color: '#02006c', fontSize: '0.95rem', fontStyle: 'italic' }}>f<sub style={{ fontSize: '0.65rem' }}>x</sub></span>
+                <span style={{ fontWeight: 900, color: '#0a034a', fontSize: '0.95rem', fontStyle: 'italic' }}>f<sub style={{ fontSize: '0.65rem' }}>x</sub></span>
 
                 {/* Sigma Dropdown Menu */}
                 <div style={{ position: 'relative' }}>
@@ -2359,7 +2359,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                                         zIndex: 5,
                                                         background: 'transparent'
                                                     }}
-                                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#02006c'; }}
+                                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#0a034a'; }}
                                                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                                                 />
                                             </th>
@@ -2389,7 +2389,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                                         zIndex: 5,
                                                         background: 'transparent'
                                                     }}
-                                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#02006c'; }}
+                                                    onMouseEnter={(e) => { e.currentTarget.style.background = '#0a034a'; }}
                                                     onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
                                                 />
                                             </td>
@@ -2424,7 +2424,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                                         style={{
                                                             position: 'relative',
                                                             padding: (isEditingThisCell || isHidden) ? 0 : '6px 10px',
-                                                            border: isInPreview ? '2px dashed #02006c' : (selected ? '2px solid #02006c' : '1px solid #E2E8F0'),
+                                                            border: isInPreview ? '2px dashed #0a034a' : (selected ? '2px solid #0a034a' : '1px solid #E2E8F0'),
                                                             color: customStyle.color ? customStyle.color : '#0F172A',
                                                             fontWeight: customStyle.bold ? 800 : 400,
                                                             fontStyle: customStyle.italic ? 'italic' : 'normal',
@@ -2440,7 +2440,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                                             whiteSpace: customStyle.wrapText ? 'normal' : 'nowrap',
                                                             wordBreak: customStyle.wrapText ? 'break-word' : 'normal',
                                                             overflow: 'hidden',
-                                                            background: isHidden ? '#E2E8F0' : (isInPreview ? 'rgba(2, 0, 108, 0.2)' : (customStyle.bg ? customStyle.bg : (selected ? 'rgba(2, 0, 108, 0.12)' : '#FFFFFF')))
+                                                            background: isHidden ? '#E2E8F0' : (isInPreview ? 'rgba(10, 3, 74, 0.2)' : (customStyle.bg ? customStyle.bg : (selected ? 'rgba(10, 3, 74, 0.12)' : '#FFFFFF')))
                                                         }}
                                                     >
                                                         {isHidden ? null : (isEditingThisCell ? (
@@ -2457,7 +2457,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                                                     }
                                                                 }}
                                                                 onBlur={() => commitCellEdit()}
-                                                                style={{ width: '100%', height: '100%', padding: '4px 8px', border: 'none', outline: '2px solid #02006c', background: '#FFF' }}
+                                                                style={{ width: '100%', height: '100%', padding: '4px 8px', border: 'none', outline: '2px solid #0a034a', background: '#FFF' }}
                                                             />
                                                         ) : (
                                                             <div style={{
@@ -2485,12 +2485,12 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                                                     right: '-4px',
                                                                     width: '8px',
                                                                     height: '8px',
-                                                                    background: '#02006c',
+                                                                    background: '#0a034a',
                                                                     border: '1.5px solid #FFFFFF',
                                                                     borderRadius: '1px',
                                                                     cursor: 'crosshair',
                                                                     zIndex: 35,
-                                                                    boxShadow: '0 0 3px rgba(2, 0, 108, 0.6)'
+                                                                    boxShadow: '0 0 3px rgba(10, 3, 74, 0.6)'
                                                                 }}
                                                             />
                                                         )}
@@ -2518,7 +2518,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             borderRadius: '6px',
                             border: '1px solid #CBD5E1',
                             background: '#FFFFFF',
-                            color: '#02006c',
+                            color: '#0a034a',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -2539,8 +2539,8 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                             style={{
                                 padding: '0.25rem 0.65rem',
                                 borderRadius: '6px',
-                                border: '1px solid #02006c',
-                                background: '#02006c',
+                                border: '1px solid #0a034a',
+                                background: '#0a034a',
                                 color: '#FFFFFF',
                                 fontSize: '0.75rem',
                                 fontWeight: 700,
@@ -2579,9 +2579,9 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                     padding: '0.35rem 0.85rem',
                                     borderRadius: '8px 8px 0 0',
                                     border: '1px solid #CBD5E1',
-                                    borderBottom: isActive ? '3px solid #02006c' : '1px solid #CBD5E1',
+                                    borderBottom: isActive ? '3px solid #0a034a' : '1px solid #CBD5E1',
                                     background: isActive ? '#FFF' : '#E2E8F0',
-                                    color: isActive ? '#02006c' : '#64748B',
+                                    color: isActive ? '#0a034a' : '#64748B',
                                     fontWeight: isActive ? 800 : 600,
                                     fontSize: '0.775rem',
                                     cursor: 'pointer',
@@ -2601,7 +2601,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                         border: 'none',
                                         cursor: 'pointer',
                                         padding: '2px',
-                                        color: isActive ? '#02006c' : '#94A3B8',
+                                        color: isActive ? '#0a034a' : '#94A3B8',
                                         display: 'flex',
                                         alignItems: 'center'
                                     }}
@@ -2616,7 +2616,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                     position: 'fixed',
                                     bottom: '65px',
                                     background: '#FFFFFF',
-                                    border: '1.5px solid #02006c',
+                                    border: '1.5px solid #0a034a',
                                     borderRadius: '12px',
                                     boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
                                     padding: '6px 0',
@@ -2649,7 +2649,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                     {copiedSheet && (
                                         <div
                                             onClick={handlePasteSheet}
-                                            style={{ padding: '7px 14px', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: '#02006c', fontWeight: 700 }}
+                                            style={{ padding: '7px 14px', fontSize: '0.8rem', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', color: '#0a034a', fontWeight: 700 }}
                                         >
                                             <ClipboardPaste size={14} /> Coller la feuille
                                         </div>
@@ -2683,7 +2683,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 userSelect: 'none'
             }}>
                 <span>© 2026 ANTIC — Plateforme Excel-to-Word</span>
-                <span>Prêt • Feuille active: <strong style={{ color: '#02006c' }}>{currentSheet?.name}</strong> ({sheetData.length} Lignes × {sheetData[0]?.length || 26} Colonnes)</span>
+                <span>Prêt • Feuille active: <strong style={{ color: '#0a034a' }}>{currentSheet?.name}</strong> ({sheetData.length} Lignes × {sheetData[0]?.length || 26} Colonnes)</span>
             </footer>
 
             {/* Word Preview Modal */}
@@ -2696,7 +2696,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 <div style={{
                     position: 'fixed',
                     inset: 0,
-                    background: 'rgba(2, 0, 108, 0.45)',
+                    background: 'rgba(10, 3, 74, 0.45)',
                     backdropFilter: 'blur(4px)',
                     display: 'flex',
                     alignItems: 'center',
@@ -2709,12 +2709,12 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                         padding: '24px',
                         width: '380px',
                         boxShadow: '0 20px 40px rgba(0,0,0,0.25)',
-                        border: '1.5px solid #02006c',
+                        border: '1.5px solid #0a034a',
                         display: 'flex',
                         flexDirection: 'column',
                         gap: '16px'
                     }}>
-                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#02006c' }}>
+                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#0a034a' }}>
                             Renommer la feuille
                         </h4>
                         <div>
@@ -2733,7 +2733,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                     border: '1.5px solid #CBD5E1',
                                     fontSize: '0.9rem',
                                     fontWeight: 700,
-                                    color: '#02006c',
+                                    color: '#0a034a',
                                     outline: 'none'
                                 }}
                             />
@@ -2760,7 +2760,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                                     padding: '8px 18px',
                                     borderRadius: '8px',
                                     border: 'none',
-                                    background: '#02006c',
+                                    background: '#0a034a',
                                     color: '#FFF',
                                     fontSize: '0.8rem',
                                     fontWeight: 800,
@@ -2779,7 +2779,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                 <div style={{
                     position: 'fixed',
                     inset: 0,
-                    background: 'rgba(2, 0, 108, 0.45)',
+                    background: 'rgba(10, 3, 74, 0.45)',
                     backdropFilter: 'blur(4px)',
                     display: 'flex',
                     alignItems: 'center',

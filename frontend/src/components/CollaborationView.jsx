@@ -167,8 +167,8 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                 paddingBottom: '1.25rem'
             }}>
                 <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 800, color: '#02006c', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        <Radio size={16} color="#02006c" /> {lang === 'fr' ? "Session Multi-Utilisateurs Temps Réel" : "Real-Time Multi-User Session"}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.75rem', fontWeight: 800, color: '#0a034a', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                        <Radio size={16} color="#0a034a" /> {lang === 'fr' ? "Session Multi-Utilisateurs Temps Réel" : "Real-Time Multi-User Session"}
                     </div>
                     <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0F172A', marginTop: '2px' }}>
                         {lang === 'fr' ? "Espace de Co-Édition & Collaboration Live" : "Live Co-Editing & Collaboration Workspace"}
@@ -184,7 +184,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                 <button
                     onClick={() => setInviteModalOpen(true)}
                     style={{
-                        background: '#02006c',
+                        background: '#0a034a',
                         color: '#FFFFFF',
                         border: 'none',
                         borderRadius: '14px',
@@ -195,7 +195,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px',
-                        boxShadow: '0 4px 15px rgba(2, 0, 108, 0.2)'
+                        boxShadow: '0 4px 15px rgba(10, 3, 74, 0.2)'
                     }}
                 >
                     <UserPlus size={18} /> {lang === 'fr' ? "Inviter un Agent sur un Fichier Précis" : "Invite Agent on Specific File"}
@@ -214,7 +214,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                 boxShadow: '0 2px 8px rgba(0,0,0,0.02)'
             }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Filter size={18} color="#02006c" />
+                    <Filter size={18} color="#0a034a" />
                     <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0F172A' }}>
                         {lang === 'fr' ? "Filtrer la collaboration par fichier Excel :" : "Filter collaboration by Excel file:"}
                     </span>
@@ -224,7 +224,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                     <button
                         onClick={() => setSelectedFileFilter('ALL')}
                         style={{
-                            background: selectedFileFilter === 'ALL' ? '#02006c' : '#F1F5F9',
+                            background: selectedFileFilter === 'ALL' ? '#0a034a' : '#F1F5F9',
                             color: selectedFileFilter === 'ALL' ? '#FFFFFF' : '#475569',
                             border: 'none',
                             borderRadius: '20px',
@@ -247,7 +247,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                                 key={wb.id || wb.name}
                                 onClick={() => setSelectedFileFilter(wb.name)}
                                 style={{
-                                    background: isSelected ? '#02006c' : '#F1F5F9',
+                                    background: isSelected ? '#0a034a' : '#F1F5F9',
                                     color: isSelected ? '#FFFFFF' : '#475569',
                                     border: 'none',
                                     borderRadius: '20px',
@@ -266,7 +266,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                                 {count > 0 && (
                                     <span style={{
                                         background: isSelected ? '#FCD116' : '#CBD5E1',
-                                        color: '#02006c',
+                                        color: '#0a034a',
                                         fontSize: '0.65rem',
                                         fontWeight: 900,
                                         borderRadius: '10px',
@@ -287,7 +287,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                 {/* Left Column: Connected Agents */}
                 <div style={{ flex: 1.2, display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#02006c' }}>
+                        <h2 style={{ fontSize: '1.05rem', fontWeight: 800, color: '#0a034a' }}>
                             {lang === 'fr' ? "Agents Connectés & Collaborateurs" : "Connected Agents & Collaborators"} ({filteredUsers.length})
                         </h2>
                         <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
@@ -312,7 +312,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'space-between',
-                                        boxShadow: '0 2px 8px rgba(2, 0, 108, 0.04)'
+                                        boxShadow: '0 2px 8px rgba(10, 3, 74, 0.04)'
                                     }}
                                 >
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -320,7 +320,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                                             width: '44px',
                                             height: '44px',
                                             borderRadius: '50%',
-                                            background: '#02006c',
+                                            background: '#0a034a',
                                             color: '#FFFFFF',
                                             fontWeight: 800,
                                             fontSize: '0.85rem',
@@ -344,13 +344,13 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                                                 </span>
                                             </div>
                                             <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '2px' }}>
-                                                {u.role} • {lang === 'fr' ? 'Fichier Cible :' : 'Target File:'} <strong style={{ color: '#02006c' }}>{u.file}</strong>
+                                                {u.role} • {lang === 'fr' ? 'Fichier Cible :' : 'Target File:'} <strong style={{ color: '#0a034a' }}>{u.file}</strong>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div style={{ textAlign: 'right' }}>
-                                        <span style={{ fontSize: '0.725rem', fontWeight: 800, color: '#02006c', background: 'rgba(2, 0, 108, 0.08)', padding: '4px 10px', borderRadius: '12px' }}>
+                                        <span style={{ fontSize: '0.725rem', fontWeight: 800, color: '#0a034a', background: 'rgba(10, 3, 74, 0.08)', padding: '4px 10px', borderRadius: '12px' }}>
                                             {lang === 'fr' ? 'Cellule' : 'Cell'} {u.cell} ({u.status})
                                         </span>
                                         <div style={{ fontSize: '0.675rem', color: '#94A3B8', marginTop: '4px' }}>
@@ -374,13 +374,13 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     height: '540px',
-                    boxShadow: '0 4px 15px rgba(2, 0, 108, 0.04)'
+                    boxShadow: '0 4px 15px rgba(10, 3, 74, 0.04)'
                 }}>
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #E2E8F0', paddingBottom: '0.75rem', marginBottom: '1rem' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <MessageSquare size={18} color="#02006c" />
-                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#02006c' }}>
+                                <MessageSquare size={18} color="#0a034a" />
+                                <h3 style={{ fontSize: '0.95rem', fontWeight: 800, color: '#0a034a' }}>
                                     {lang === 'fr' ? "Directives & Discussion Live" : "Live Directives & Discussion"}
                                 </h3>
                             </div>
@@ -389,7 +389,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', overflowY: 'auto', maxHeight: '400px' }}>
                             {messages.map((m) => (
                                 <div key={m.id} style={{ background: '#F8FAFC', padding: '0.75rem 1rem', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', fontWeight: 700, color: '#02006c', marginBottom: '3px' }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.725rem', fontWeight: 700, color: '#0a034a', marginBottom: '3px' }}>
                                         <span>{m.user}</span>
                                         <span style={{ color: '#94A3B8' }}>{m.time}</span>
                                     </div>
@@ -423,7 +423,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                         <button
                             type="submit"
                             style={{
-                                background: '#02006c',
+                                background: '#0a034a',
                                 color: '#FFFFFF',
                                 border: 'none',
                                 borderRadius: '12px',
@@ -469,7 +469,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
 
                         {/* Modal Header */}
                         <div style={{
-                            background: '#02006c',
+                            background: '#0a034a',
                             padding: '1.25rem 1.75rem',
                             color: '#FFFFFF',
                             display: 'flex',
@@ -510,7 +510,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                                         fontSize: '0.85rem',
                                         outline: 'none',
                                         fontWeight: 700,
-                                        color: '#02006c'
+                                        color: '#0a034a'
                                     }}
                                 >
                                     {availableWorkbooks.map((wb) => (
@@ -611,7 +611,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                                     type="submit"
                                     style={{
                                         flex: 1.5,
-                                        background: '#02006c',
+                                        background: '#0a034a',
                                         color: '#FFFFFF',
                                         border: 'none',
                                         borderRadius: '14px',
@@ -623,7 +623,7 @@ export default function CollaborationView({ currentUser, workbooks = [], onSelec
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         gap: '6px',
-                                        boxShadow: '0 4px 15px rgba(2, 0, 108, 0.2)'
+                                        boxShadow: '0 4px 15px rgba(10, 3, 74, 0.2)'
                                     }}
                                 >
                                     <Send size={16} /> {lang === 'fr' ? "Envoyer l'Invitation" : "Send Invitation"}

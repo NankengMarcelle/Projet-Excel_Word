@@ -199,15 +199,15 @@ export default function SheetToolsFilterModal({
                 width: '100%',
                 background: '#FFFFFF',
                 borderRadius: '20px',
-                boxShadow: '0 20px 45px rgba(2, 0, 108, 0.25)',
-                border: '1.5px solid #02006c',
+                boxShadow: '0 20px 45px rgba(10, 3, 74, 0.25)',
+                border: '1.5px solid #0a034a',
                 overflow: 'hidden',
                 display: 'flex',
                 flexDirection: 'column'
             }}>
                 <div style={{
                     padding: '14px 20px',
-                    background: '#02006c',
+                    background: '#0a034a',
                     color: '#FFFFFF',
                     display: 'flex',
                     alignItems: 'center',
@@ -289,20 +289,20 @@ export default function SheetToolsFilterModal({
                                     width: '100%',
                                     padding: '10px 14px',
                                     borderRadius: '10px',
-                                    border: '1.5px solid #02006c',
+                                    border: '1.5px solid #0a034a',
                                     background: '#FFFFFF',
                                     fontSize: '0.85rem',
                                     fontWeight: 700,
-                                    color: '#02006c',
+                                    color: '#0a034a',
                                     cursor: 'pointer',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'space-between',
-                                    boxShadow: '0 2px 4px rgba(2, 0, 108, 0.05)'
+                                    boxShadow: '0 2px 4px rgba(10, 3, 74, 0.05)'
                                 }}
                             >
                                 <span>{sheets[selectedParentIndex]?.name || activeSheet.name} {sheets[selectedParentIndex]?.type === 'child' ? '(Enfant - Interdit)' : '(Parent)'}</span>
-                                <ChevronDown size={16} color="#02006c" style={{ transform: isParentDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
+                                <ChevronDown size={16} color="#0a034a" style={{ transform: isParentDropdownOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s ease' }} />
                             </div>
 
                             {isParentDropdownOpen && (
@@ -313,7 +313,7 @@ export default function SheetToolsFilterModal({
                                     right: 0,
                                     marginTop: '4px',
                                     background: '#FFFFFF',
-                                    border: '1.5px solid #02006c',
+                                    border: '1.5px solid #0a034a',
                                     borderRadius: '12px',
                                     boxShadow: '0 12px 30px rgba(0, 0, 108, 0.2)',
                                     zIndex: 999,
@@ -334,8 +334,8 @@ export default function SheetToolsFilterModal({
                                                     padding: '9px 16px',
                                                     fontSize: '0.825rem',
                                                     fontWeight: selectedParentIndex === idx ? 800 : 600,
-                                                    color: selectedParentIndex === idx ? '#02006c' : '#1E293B',
-                                                    background: selectedParentIndex === idx ? 'rgba(2, 0, 108, 0.08)' : '#FFFFFF',
+                                                    color: selectedParentIndex === idx ? '#0a034a' : '#1E293B',
+                                                    background: selectedParentIndex === idx ? 'rgba(10, 3, 74, 0.08)' : '#FFFFFF',
                                                     cursor: 'pointer',
                                                     display: 'flex',
                                                     alignItems: 'center',
@@ -344,7 +344,7 @@ export default function SheetToolsFilterModal({
                                                 }}
                                             >
                                                 <span>{s.name} (Parent)</span>
-                                                {selectedParentIndex === idx && <span style={{ color: '#02006c', fontWeight: 900 }}>✓</span>}
+                                                {selectedParentIndex === idx && <span style={{ color: '#0a034a', fontWeight: 900 }}>✓</span>}
                                             </div>
                                         );
                                     })}
@@ -361,7 +361,7 @@ export default function SheetToolsFilterModal({
                                     <button
                                         type="button"
                                         onClick={selectAllCols}
-                                        style={{ fontSize: '0.725rem', color: '#02006c', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
+                                        style={{ fontSize: '0.725rem', color: '#0a034a', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}
                                     >
                                         Sélectionner tout
                                     </button>
@@ -391,9 +391,9 @@ export default function SheetToolsFilterModal({
                                         const isSomeChecked = g.children.some(c => selectedCols.includes(c));
                                         return (
                                             <div key={g.id} style={{ marginBottom: '10px', background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '8px', overflow: 'hidden' }}>
-                                                <div style={{ padding: '8px 12px', background: 'rgba(2,0,108,0.03)', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => toggleGroup(g.children)}>
-                                                    {isAllChecked ? <CheckSquare size={16} color="#02006c" /> : (isSomeChecked ? <div style={{ width: '14px', height: '14px', background: '#02006c', borderRadius: '3px', margin: '1px' }} /> : <Square size={16} color="#94A3B8" />)}
-                                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#02006c', flex: 1 }}>[Groupe] {g.label}</span>
+                                                <div style={{ padding: '8px 12px', background: 'rgba(10, 3, 74,0.03)', borderBottom: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }} onClick={() => toggleGroup(g.children)}>
+                                                    {isAllChecked ? <CheckSquare size={16} color="#0a034a" /> : (isSomeChecked ? <div style={{ width: '14px', height: '14px', background: '#0a034a', borderRadius: '3px', margin: '1px' }} /> : <Square size={16} color="#94A3B8" />)}
+                                                    <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#0a034a', flex: 1 }}>[Groupe] {g.label}</span>
                                                     <ListTree size={14} color="#64748B" />
                                                 </div>
                                                 <div style={{ padding: '6px 12px' }}>
@@ -430,11 +430,11 @@ export default function SheetToolsFilterModal({
                                     width: '100%',
                                     padding: '10px 14px',
                                     borderRadius: '10px',
-                                    border: '1.5px solid #02006c',
+                                    border: '1.5px solid #0a034a',
                                     background: '#FFFFFF',
                                     fontSize: '0.85rem',
                                     fontWeight: 700,
-                                    color: '#02006c',
+                                    color: '#0a034a',
                                     outline: 'none',
                                     appearance: 'menulist'
                                 }}
@@ -491,7 +491,7 @@ export default function SheetToolsFilterModal({
                                         background: '#F8FAFC',
                                         fontSize: '0.85rem',
                                         fontWeight: 700,
-                                        color: '#02006c'
+                                        color: '#0a034a'
                                     }}
                                 />
                             </div>
@@ -516,7 +516,7 @@ export default function SheetToolsFilterModal({
                                         background: '#F8FAFC',
                                         fontSize: '0.85rem',
                                         fontWeight: 700,
-                                        color: '#02006c'
+                                        color: '#0a034a'
                                     }}
                                 />
                             </div>
@@ -538,7 +538,7 @@ export default function SheetToolsFilterModal({
                                         background: '#F8FAFC',
                                         fontSize: '0.85rem',
                                         fontWeight: 700,
-                                        color: '#02006c'
+                                        color: '#0a034a'
                                     }}
                                 />
                             </div>
@@ -598,7 +598,7 @@ export default function SheetToolsFilterModal({
                             padding: '8px 20px',
                             borderRadius: '10px',
                             border: 'none',
-                            background: isCurrentSheetChild || parentSheet?.type === 'child' ? '#94A3B8' : '#02006c',
+                            background: isCurrentSheetChild || parentSheet?.type === 'child' ? '#94A3B8' : '#0a034a',
                             color: '#FFF',
                             fontSize: '0.8rem',
                             fontWeight: 800,

@@ -148,14 +148,14 @@ export default function ColorPickerPopover({
                         background: 'transparent',
                         fontSize: '0.8rem',
                         fontWeight: 700,
-                        color: '#02006c',
+                        color: '#0a034a',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
                         gap: '8px'
                     }}
                 >
-                    <Palette size={16} color="#02006c" />
+                    <Palette size={16} color="#0a034a" />
                     <span>Custom Color...</span>
                 </button>
             </div>

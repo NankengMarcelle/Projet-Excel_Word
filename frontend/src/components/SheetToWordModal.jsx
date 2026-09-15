@@ -66,7 +66,7 @@ export default function SheetToWordModal({ workbook, initialSheetName, onClose, 
         <div style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(2, 0, 108, 0.6)',
+            background: 'rgba(10, 3, 74, 0.6)',
             backdropFilter: 'blur(8px)',
             display: 'flex',
             alignItems: 'center',
@@ -97,7 +97,7 @@ export default function SheetToWordModal({ workbook, initialSheetName, onClose, 
                             width: '42px',
                             height: '42px',
                             borderRadius: '12px',
-                            background: '#02006c',
+                            background: '#0a034a',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
@@ -206,7 +206,7 @@ export default function SheetToWordModal({ workbook, initialSheetName, onClose, 
                         {/* Progress Bar */}
                         {isConverting && (
                             <div style={{ marginTop: '1.5rem', padding: '1rem', background: '#F8FAFC', borderRadius: '14px', border: '1px solid #E2E8F0' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#02006c', marginBottom: '0.5rem', fontWeight: 800 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#0a034a', marginBottom: '0.5rem', fontWeight: 800 }}>
                                     <span>{stepText}</span>
                                     <span>{progress}%</span>
                                 </div>
@@ -214,7 +214,7 @@ export default function SheetToWordModal({ workbook, initialSheetName, onClose, 
                                     <div style={{
                                         width: `${progress}%`,
                                         height: '100%',
-                                        background: '#02006c',
+                                        background: '#0a034a',
                                         transition: 'width 0.4s ease'
                                     }} />
                                 </div>

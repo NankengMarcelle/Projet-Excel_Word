@@ -29,7 +29,7 @@ export default function Sidebar({ activeView, setActiveView, onOpenUploadModal, 
             height: '100vh',
             position: 'sticky',
             top: 0,
-            background: '#02006c', /* Strict #02006c Deep Imperial Navy */
+            background: '#0a034a', /* Strict #0a034a Deep Imperial Navy */
             color: '#FFFFFF',
             display: 'flex',
             flexDirection: 'column',
@@ -143,7 +143,7 @@ export default function Sidebar({ activeView, setActiveView, onOpenUploadModal, 
                                     borderRadius: '16px',
                                     border: 'none',
                                     background: isActive ? '#FFFFFF' : 'transparent',
-                                    color: isActive ? '#02006c' : '#E0E7FF',
+                                    color: isActive ? '#0a034a' : '#E0E7FF',
                                     fontWeight: isActive ? 800 : 600,
                                     fontSize: '0.825rem',
                                     cursor: 'pointer',
@@ -155,7 +155,7 @@ export default function Sidebar({ activeView, setActiveView, onOpenUploadModal, 
                                 {/* FIXED ICON & TEXT ALIGNMENT GRID */}
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: 1, minWidth: 0 }}>
                                     <div style={{ minWidth: '22px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Icon size={18} color={isActive ? '#02006c' : '#E0E7FF'} />
+                                        <Icon size={18} color={isActive ? '#0a034a' : '#E0E7FF'} />
                                     </div>
                                     <span style={{ textAlign: 'left', lineHeight: 1.2, wordBreak: 'break-word' }}>
                                         {item.label}
@@ -164,7 +164,7 @@ export default function Sidebar({ activeView, setActiveView, onOpenUploadModal, 
 
                                 {item.badge && (
                                     <span style={{
-                                        background: isActive ? '#02006c' : 'rgba(255, 255, 255, 0.25)',
+                                        background: isActive ? '#0a034a' : 'rgba(255, 255, 255, 0.25)',
                                         color: '#FFFFFF',
                                         fontSize: '0.675rem',
                                         fontWeight: 800,

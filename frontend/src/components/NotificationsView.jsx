@@ -102,7 +102,7 @@ export default function NotificationsView({ onSelectWorkbook, lang = 'fr' }) {
                         style={{
                             background: 'transparent',
                             border: 'none',
-                            color: '#02006c',
+                            color: '#0a034a',
                             fontWeight: 700,
                             fontSize: '0.825rem',
                             cursor: 'pointer',
@@ -125,7 +125,7 @@ export default function NotificationsView({ onSelectWorkbook, lang = 'fr' }) {
                         padding: '0.45rem 1rem',
                         borderRadius: '20px',
                         border: 'none',
-                        background: filter === 'all' ? '#02006c' : 'transparent',
+                        background: filter === 'all' ? '#0a034a' : 'transparent',
                         color: filter === 'all' ? '#FFFFFF' : '#64748B',
                         fontWeight: filter === 'all' ? 700 : 600,
                         fontSize: '0.8rem',
@@ -141,7 +141,7 @@ export default function NotificationsView({ onSelectWorkbook, lang = 'fr' }) {
                         padding: '0.45rem 1rem',
                         borderRadius: '20px',
                         border: 'none',
-                        background: filter === 'unread' ? '#02006c' : 'transparent',
+                        background: filter === 'unread' ? '#0a034a' : 'transparent',
                         color: filter === 'unread' ? '#FFFFFF' : '#64748B',
                         fontWeight: filter === 'unread' ? 700 : 600,
                         fontSize: '0.8rem',
@@ -154,8 +154,8 @@ export default function NotificationsView({ onSelectWorkbook, lang = 'fr' }) {
                     <span>{lang === 'fr' ? 'Non lues' : 'Unread'}</span>
                     {unreadCount > 0 && (
                         <span style={{
-                            background: filter === 'unread' ? '#FFFFFF' : '#02006c',
-                            color: filter === 'unread' ? '#02006c' : '#FFFFFF',
+                            background: filter === 'unread' ? '#FFFFFF' : '#0a034a',
+                            color: filter === 'unread' ? '#0a034a' : '#FFFFFF',
                             fontSize: '0.7rem',
                             fontWeight: 800,
                             padding: '1px 6px',
@@ -196,7 +196,7 @@ export default function NotificationsView({ onSelectWorkbook, lang = 'fr' }) {
                                         width: '8px',
                                         height: '8px',
                                         borderRadius: '50%',
-                                        background: notif.unread ? '#02006c' : '#CBD5E1'
+                                        background: notif.unread ? '#0a034a' : '#CBD5E1'
                                     }} />
                                 </div>
 
@@ -219,7 +219,7 @@ export default function NotificationsView({ onSelectWorkbook, lang = 'fr' }) {
                                             style={{
                                                 background: 'none',
                                                 border: 'none',
-                                                color: '#02006c',
+                                                color: '#0a034a',
                                                 fontSize: '0.775rem',
                                                 fontWeight: 700,
                                                 cursor: 'pointer',

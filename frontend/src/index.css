@@ -127,3 +127,80 @@ body {
   color: var(--navy-primary);
   border: 1px solid rgba(10, 3, 74, 0.15);
 }
+
+/* ─── RESPONSIVE & MOBILE DESIGN SYSTEM ─── */
+
+/* Responsive Table Wrapper */
+.responsive-table-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 12px;
+}
+
+/* Responsive Auto Grids */
+.grid-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+}
+
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+/* Sidebar Drawer Overlay */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 3, 74, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 99;
+}
+
+/* ─── MEDIA QUERIES FOR TABLETS & PHONES ─── */
+
+@media (max-width: 900px) {
+  .desktop-sidebar {
+    position: fixed !important;
+    left: -280px;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    z-index: 100 !important;
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .desktop-sidebar.mobile-open {
+    left: 0 !important;
+  }
+
+  .sidebar-overlay.active {
+    display: block !important;
+  }
+
+  .mobile-menu-btn {
+    display: flex !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .header-search-container {
+    width: 100% !important;
+    max-width: 180px !important;
+  }
+
+  .header-user-name {
+    display: none !important;
+  }
+
+  .view-container {
+    padding: 1rem !important;
+  }
+
+  .modal-content {
+    width: 95% !important;
+    padding: 1.25rem !important;
+  }
+}

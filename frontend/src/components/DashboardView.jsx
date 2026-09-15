@@ -21,11 +21,11 @@ export default function DashboardView({
     const [hoveredFile, setHoveredFile] = useState(null);
 
     return (
-        <div style={{
-            padding: '2.5rem 3.5rem',
+        <div className="view-container" style={{
+            padding: '2rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: '2.5rem',
+            gap: '2rem',
             background: 'radial-gradient(circle at 10% 10%, rgba(10, 3, 74, 0.02) 0%, transparent 40%), radial-gradient(circle at 90% 90%, rgba(16, 185, 129, 0.02) 0%, transparent 40%), #FAFAFC',
             minHeight: 'calc(100vh - 65px)',
             width: '100%',
@@ -35,16 +35,18 @@ export default function DashboardView({
             {/* ─── MINIMALIST WELCOME HEADER ─── */}
             <div style={{
                 display: 'flex',
+                flexWrap: 'wrap',
+                gap: '1rem',
                 justifyContent: 'space-between',
                 alignItems: 'flex-end',
                 paddingBottom: '1.5rem',
                 borderBottom: '1px solid #F1F5F9'
             }}>
                 <div>
-                    <h1 style={{ fontSize: '2.25rem', fontWeight: 800, background: 'linear-gradient(90deg, #0F172A 0%, #0a034a 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.03em', margin: 0 }}>
+                    <h1 style={{ fontSize: '1.8rem', fontWeight: 800, background: 'linear-gradient(90deg, #0F172A 0%, #0a034a 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-0.03em', margin: 0 }}>
                         {lang === 'fr' ? `Bonjour, ${currentUser?.name || 'Pierre Marcelle Nankeng'}.` : `Hello, ${currentUser?.name || 'Pierre Marcelle Nankeng'}.`}
                     </h1>
-                    <p style={{ fontSize: '0.95rem', color: '#64748B', marginTop: '10px', margin: '10px 0 0 0', fontWeight: 400 }}>
+                    <p style={{ fontSize: '0.875rem', color: '#64748B', marginTop: '6px', margin: '6px 0 0 0', fontWeight: 400 }}>
                         {lang === 'fr'
                             ? "Gérez vos classeurs et générez des rapports Word institutionnels en toute simplicité."
                             : "Manage your Excel workbooks and generate institutional Word reports seamlessly."}
@@ -82,7 +84,7 @@ export default function DashboardView({
             </div>
 
             {/* ─── AIRY METRICS STRIP ─── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1.5rem' }}>
+            <div className="grid-metrics">
                 <div
                     style={{
                         background: '#FFFFFF',

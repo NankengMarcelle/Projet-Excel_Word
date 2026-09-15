@@ -1,7 +1,7 @@
 import React from 'react';
-import { Search, Bell, ShieldCheck } from 'lucide-react';
+import { Search, Bell, ShieldCheck, Menu } from 'lucide-react';
 
-export default function Header({ currentUser, userPhoto, activeView, setActiveView, lang, setLang, onOpenUserProfile }) {
+export default function Header({ currentUser, userPhoto, activeView, setActiveView, lang, setLang, onOpenUserProfile, onToggleMobileSidebar }) {
     const userName = currentUser?.name || 'PIERRE MARCELLE NANKENG';
 
     return (
@@ -12,31 +12,56 @@ export default function Header({ currentUser, userPhoto, activeView, setActiveVi
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            padding: '0 2rem',
+            padding: '0 1rem',
             position: 'sticky',
             top: 0,
             zIndex: 90,
             boxShadow: '0 2px 10px rgba(0, 0, 0, 0.05)'
         }}>
 
-            {/* Left Search Pill Bar */}
-            <div style={{ position: 'relative', width: '380px' }}>
-                <Search size={16} color="#0a034a" style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)' }} />
-                <input
-                    type="text"
-                    placeholder={lang === 'fr' ? "Rechercher un classeur Excel, rapport Word..." : "Search workbook..."}
+            {/* Left Section: Mobile Menu Toggle + Search Pill Bar */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
+                {/* Mobile Menu Hamburger Button */}
+                <button
+                    onClick={onToggleMobileSidebar}
+                    className="mobile-menu-btn"
                     style={{
-                        width: '100%',
-                        padding: '0.55rem 1rem 0.55rem 2.6rem',
-                        borderRadius: '30px',
-                        border: '1px solid #CBD5E1',
-                        background: '#F1F5F9',
-                        fontSize: '0.825rem',
-                        outline: 'none',
-                        color: '#0a034a',
-                        fontWeight: 600
+                        display: 'none',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '38px',
+                        height: '38px',
+                        borderRadius: '10px',
+                        background: '#0a034a',
+                        color: '#FFF',
+                        border: 'none',
+                        cursor: 'pointer',
+                        flexShrink: 0
                     }}
-                />
+                    title="Menu"
+                >
+                    <Menu size={20} />
+                </button>
+
+                {/* Search Bar Container */}
+                <div className="header-search-container" style={{ position: 'relative', width: '380px' }}>
+                    <Search size={16} color="#0a034a" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <input
+                        type="text"
+                        placeholder={lang === 'fr' ? "Rechercher..." : "Search..."}
+                        style={{
+                            width: '100%',
+                            padding: '0.55rem 1rem 0.55rem 2.5rem',
+                            borderRadius: '30px',
+                            border: '1px solid #CBD5E1',
+                            background: '#F1F5F9',
+                            fontSize: '0.825rem',
+                            outline: 'none',
+                            color: '#0a034a',
+                            fontWeight: 600
+                        }}
+                    />
+                </div>
             </div>
 
             {/* Right Controls: Language Selector, Notifications & User Profile Pill Container */}

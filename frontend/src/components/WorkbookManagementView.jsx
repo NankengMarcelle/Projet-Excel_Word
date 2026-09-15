@@ -51,7 +51,7 @@ export default function WorkbookManagementView({ workbooks = [], onSelectWorkboo
             <div style={{ display: 'flex', width: '100%' }}>
 
                 {/* Files List (Enumération style boîte de messages) */}
-                <div style={{ width: '100%', display: 'flex', flexDirection: 'column', background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
+                <div className="responsive-table-container" style={{ width: '100%', display: 'flex', flexDirection: 'column', background: '#FFFFFF', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden', boxShadow: '0 4px 12px rgba(0,0,0,0.02)' }}>
 
                     {/* Header Row */}
                     <div style={{ display: 'flex', padding: '12px 16px', background: '#F8FAFC', borderBottom: '1px solid #E2E8F0', fontSize: '0.75rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase' }}>

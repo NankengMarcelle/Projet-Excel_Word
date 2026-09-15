@@ -38,11 +38,17 @@ export default function App() {
     }
     checkAuth();
   }, []);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [activeView, setActiveView] = useState('dashboard');
   const [theme, setTheme] = useState('dark');
   const [lang, setLang] = useState(() => {
     return localStorage.getItem('antic_lang') || 'fr';
   });
+
+  const handleNavigate = (view) => {
+    setActiveView(view);
+    setMobileSidebarOpen(false);
+  };
   const [workbooks, setWorkbooks] = useState([]); // Removed sampleWorkbooks, default to empty
   const [conversions, setConversions] = useState(conversionHistory);
   const [selectedWorkbook, setSelectedWorkbook] = useState(() => {
@@ -255,8 +261,13 @@ export default function App() {
       {/* Deep Imperial Navy Left Sidebar (#0a034a) */}
       <Sidebar
         activeView={activeView}
-        setActiveView={setActiveView}
-        onOpenUploadModal={() => setUploadModalOpen(true)}
+        setActiveView={handleNavigate}
+        isMobileOpen={mobileSidebarOpen}
+        onCloseMobile={() => setMobileSidebarOpen(false)}
+        onOpenUploadModal={() => {
+          setMobileSidebarOpen(false);
+          setUploadModalOpen(true);
+        }}
         currentUser={currentUser}
         userPhoto={userPhoto}
         lang={lang}
@@ -282,10 +293,11 @@ export default function App() {
           theme={theme}
           toggleTheme={toggleTheme}
           activeView={activeView}
-          setActiveView={setActiveView}
+          setActiveView={handleNavigate}
           lang={lang}
           setLang={setLang}
-          onOpenUserProfile={() => setActiveView('profile')}
+          onOpenUserProfile={() => handleNavigate('profile')}
+          onToggleMobileSidebar={() => setMobileSidebarOpen(prev => !prev)}
         />
 
         {/* Dynamic Workspace Container Views */}

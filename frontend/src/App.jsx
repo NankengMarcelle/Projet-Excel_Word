@@ -12,6 +12,7 @@ import UserProfileView from './components/UserProfileView';
 import SheetToWordModal from './components/SheetToWordModal';
 import FileUploader from './components/FileUploader';
 import LoginView from './components/LoginView';
+import BottomNavBar from './components/BottomNavBar';
 
 import { CheckCircle2, AlertCircle, AlertTriangle, X } from 'lucide-react';
 import { authApi, workbooksApi } from './api_client';
@@ -39,6 +40,20 @@ export default function App() {
   });
 
   useEffect(() => {
+    const handleUnauthorized = () => {
+      authApi.logout();
+      setCurrentUser(null);
+      setIsAuthenticated(false);
+      showToast("Session expirée ou non autorisée. Veuillez vous reconnecter.", "error");
+    };
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized);
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized);
+    };
+  }, []);
+
+  useEffect(() => {
     async function checkAuth() {
       const token = localStorage.getItem('sheetflow_token');
       if (token) {
@@ -60,6 +75,8 @@ export default function App() {
           setCurrentUser(null);
           setIsAuthenticated(false);
         }
+      } else {
+        setIsAuthenticated(false);
       }
     }
     checkAuth();
@@ -485,6 +502,13 @@ export default function App() {
           </div>
         );
       })()}
+
+      {/* Fixed Bottom Navigation Bar for Mobile */}
+      <BottomNavBar
+        activeView={activeView}
+        setActiveView={handleNavigate}
+        lang={lang}
+      />
 
     </div>
   );

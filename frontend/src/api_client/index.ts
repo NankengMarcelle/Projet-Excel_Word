@@ -44,6 +44,19 @@ apiClient.interceptors.request.use((config) => {
     return config;
 });
 
+// Interceptor for 401 Unauthorized Response
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response && error.response.status === 401) {
+            localStorage.removeItem(TOKEN_KEY);
+            localStorage.removeItem(USER_KEY);
+            window.dispatchEvent(new Event('auth:unauthorized'));
+        }
+        return Promise.reject(error);
+    }
+);
+
 // 1. Auth Service
 export const authApi = {
     register: async (data: UserCreate): Promise<UserRead> => {

@@ -163,10 +163,45 @@ body {
 
 /* ─── MEDIA QUERIES FOR TABLETS & PHONES ─── */
 
-@media (max-width: 900px) {
+/* Tablet (640px to 1024px): Permanent Compact 72px Icon Sidebar */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .desktop-sidebar {
+    width: 72px !important;
+    min-width: 72px !important;
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+  }
+
+  .sidebar-text {
+    display: none !important;
+  }
+
+  .sidebar-subtext {
+    display: none !important;
+  }
+
+  .sidebar-logo-text {
+    display: none !important;
+  }
+
+  .sidebar-nav-item {
+    justify-content: center !important;
+    padding: 0.75rem 0 !important;
+  }
+
+  .sidebar-nav-item span {
+    display: none !important;
+  }
+}
+
+/* Smartphone (<640px): Mobile Drawer + Bottom Navigation Bar */
+@media (max-width: 640px) {
   .desktop-sidebar {
     position: fixed !important;
     left: -280px;
+    width: 260px !important;
+    min-width: 260px !important;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     z-index: 100 !important;
     box-shadow: 4px 0 25px rgba(0, 0, 0, 0.4) !important;
@@ -183,9 +218,11 @@ body {
   .mobile-menu-btn {
     display: flex !important;
   }
-}
 
-@media (max-width: 640px) {
+  .mobile-bottom-nav {
+    display: flex !important;
+  }
+
   .header-search-container {
     width: 100% !important;
     max-width: 180px !important;
@@ -197,6 +234,8 @@ body {
 
   .view-container {
     padding: 1rem !important;
+    padding-bottom: 5rem !important;
+    /* Space for Bottom Nav Bar */
   }
 
   .modal-content {

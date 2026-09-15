@@ -1,6 +1,8 @@
 import axios, { AxiosInstance } from 'axios';
 import { components, paths } from './types';
 
+export * from './models';
+
 // API Base URL (FastAPI Render Server)
 export const API_BASE_URL = 'https://sheetflow-backend-jzbo.onrender.com';
 

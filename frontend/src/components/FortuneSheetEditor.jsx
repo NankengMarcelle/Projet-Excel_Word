@@ -689,6 +689,7 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
         const finalizedHeaderRows = projectedHeaderRows.map(row => colIndicesToKeep.map(cIdx => row[cIdx] || ''));
         const finalizedDataRows = filteredRawRowsWithIndex.map(item => colIndicesToKeep.map(cIdx => item.row[cIdx] || ''));
 
+        const paddedRows = [...finalizedHeaderRows, ...finalizedDataRows];
 
         const newRowHeights = {};
         const newCellStyles = {};
@@ -768,10 +769,19 @@ export default function FortuneSheetEditor({ selectedWorkbook, onWorkbookChange,
                     rowSpan: newEndR - newStartR + 1, colSpan: newEndC - newStartC + 1,
                     s: { r: newStartR, c: newStartC }, e: { r: newEndR, c: newEndC }
                 });
+
+                if (paddedRows[newStartR] && paddedRows[newStartR][newStartC] !== undefined) {
+                    paddedRows[newStartR][newStartC] = parentData[sR]?.[sC] || '';
+                }
+                if (oldStyles[`${sR}_${sC}`]) {
+                    newCellStyles[`${newStartR}_${newStartC}`] = JSON.parse(JSON.stringify(oldStyles[`${sR}_${sC}`]));
+                }
+                if (oldFormulas[`${sR}_${sC}`]) {
+                    newCellFormulas[`${newStartR}_${newStartC}`] = oldFormulas[`${sR}_${sC}`];
+                }
             }
         });
 
-        const paddedRows = [...finalizedHeaderRows, ...finalizedDataRows];
         const emptyRowsNeeded = Math.max(0, 49 - paddedRows.length);
         for (let i = 0; i < emptyRowsNeeded; i++) {
             paddedRows.push(Array(colIndicesToKeep.length).fill(''));

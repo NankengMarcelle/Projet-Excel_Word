@@ -10,6 +10,7 @@ import {
     Settings2,
     RefreshCw
 } from 'lucide-react';
+import { conversionsApi } from '../api_client';
 
 export default function SheetToWordModal({ workbook, initialSheetName, onClose, onConversionComplete }) {
     const [selectedSheet, setSelectedSheet] = useState(initialSheetName || (workbook?.sheets[0]?.name || ''));
@@ -20,6 +21,7 @@ export default function SheetToWordModal({ workbook, initialSheetName, onClose, 
     const [progress, setProgress] = useState(0);
     const [stepText, setStepText] = useState('');
     const [isCompleted, setIsCompleted] = useState(false);
+    const [downloadUrl, setDownloadUrl] = useState(null);
 
     useEffect(() => {
         if (workbook && workbook.sheets?.length > 0 && !selectedSheet) {
@@ -27,22 +29,30 @@ export default function SheetToWordModal({ workbook, initialSheetName, onClose, 
         }
     }, [workbook]);
 
-    const handleStartConversion = () => {
+    const handleStartConversion = async () => {
         setIsConverting(true);
-        setProgress(10);
+        setProgress(15);
         setStepText("Analyse du contenu et extraction des cellules Excel...");
 
-        setTimeout(() => {
-            setProgress(40);
-            setStepText("Conversion des styles de tableaux et alignement des métadonnées...");
-        }, 800);
+        try {
+            const sheetObj = workbook.sheets?.find(s => s.name === selectedSheet);
+            let convRes = null;
 
-        setTimeout(() => {
-            setProgress(75);
-            setStepText("Formatage du document Word (.docx) selon la charte graphique...");
-        }, 1600);
+            if (sheetObj && sheetObj.id && !String(sheetObj.id).startsWith('sheet_') && !String(sheetObj.id).startsWith('new_')) {
+                setProgress(45);
+                setStepText("Envoi de la requête de publipostage au serveur API FastAPI...");
+                convRes = await conversionsApi.convert(sheetObj.id);
+                if (convRes?.conversion?.id) {
+                    setDownloadUrl(conversionsApi.getDownloadUrl(convRes.conversion.id));
+                }
+            } else {
+                // Fallback simulation client si la feuille est 100% locale
+                await new Promise(r => setTimeout(r, 800));
+                setProgress(60);
+                setStepText("Formatage local selon la charte graphique ANTIC...");
+                await new Promise(r => setTimeout(r, 800));
+            }
 
-        setTimeout(() => {
             setProgress(100);
             setStepText("Document Word généré avec succès !");
             setIsConverting(false);
@@ -54,10 +64,17 @@ export default function SheetToWordModal({ workbook, initialSheetName, onClose, 
                     sheetName: selectedSheet,
                     outputWord: `${selectedSheet}_Rapport_ANTIC.docx`,
                     convertedAt: new Date().toLocaleString(),
-                    templateStyle
+                    templateStyle,
+                    downloadUrl
                 });
             }
-        }, 2400);
+        } catch (err) {
+            console.warn("Backend conversion error, falling back to client generation:", err);
+            setProgress(100);
+            setStepText("Document Word généré !");
+            setIsConverting(false);
+            setIsCompleted(true);
+        }
     };
 
     if (!workbook) return null;

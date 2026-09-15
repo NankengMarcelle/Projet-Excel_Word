@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
 import { ShieldCheck, Lock, User, Eye, EyeOff, CheckCircle2, ArrowRight } from 'lucide-react';
+import { authApi } from '../api_client';
 
 export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) {
     const [isSignUp, setIsSignUp] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
     const [credentials, setCredentials] = useState({
         username: 'p.nankeng@antic.cm',
         password: 'AnticAdmin2026!',
@@ -11,24 +13,50 @@ export default function LoginView({ onLoginSuccess, lang, setLang, showToast }) 
         fullName: 'Paul NANKENG'
     });
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        if (isSignUp) {
-            if (credentials.password !== credentials.confirmPassword) {
-                if (showToast) {
-                    showToast(lang === 'fr' ? "Les mots de passe ne correspondent pas." : "Passwords do not match.", "error");
+        setLoading(true);
+        try {
+            if (isSignUp) {
+                if (credentials.password !== credentials.confirmPassword) {
+                    if (showToast) {
+                        showToast(lang === 'fr' ? "Les mots de passe ne correspondent pas." : "Passwords do not match.", "error");
+                    }
+                    setLoading(false);
+                    return;
                 }
-                return;
+                await authApi.register({
+                    email: credentials.username,
+                    password: credentials.password,
+                    full_name: credentials.fullName
+                });
+                if (showToast) {
+                    showToast(lang === 'fr' ? "Compte agent créé avec succès ! Se connecter..." : "Account created! Logging in...", "success");
+                }
+                await authApi.login({
+                    username: credentials.username,
+                    password: credentials.password
+                });
+                onLoginSuccess();
+            } else {
+                await authApi.login({
+                    username: credentials.username,
+                    password: credentials.password
+                });
+                if (showToast) {
+                    showToast(lang === 'fr' ? "Connexion réussie ! Bienvenue sur le Portail ANTIC." : "Login successful! Welcome to ANTIC Portal.", "success");
+                }
+                onLoginSuccess();
             }
+        } catch (error) {
+            console.error('Auth error:', error);
+            const detail = error.response?.data?.detail;
+            const errMsg = typeof detail === 'string' ? detail : (lang === 'fr' ? "Erreur de connexion. Vérifiez vos identifiants ou le serveur." : "Authentication failed. Check credentials or server status.");
             if (showToast) {
-                showToast(lang === 'fr' ? "Compte agent créé avec succès ! Bienvenue sur le portail." : "Agent account successfully created! Welcome.", "success");
+                showToast(errMsg, "error");
             }
-            onLoginSuccess();
-        } else {
-            if (showToast) {
-                showToast(lang === 'fr' ? "Connexion réussie ! Bienvenue sur le Portail ANTIC." : "Login successful! Welcome to ANTIC Portal.", "success");
-            }
-            onLoginSuccess();
+        } finally {
+            setLoading(false);
         }
     };
 

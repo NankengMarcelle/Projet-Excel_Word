@@ -15,11 +15,29 @@ import LoginView from './components/LoginView';
 
 import { CheckCircle2, AlertCircle, AlertTriangle, X } from 'lucide-react';
 import { currentUser, sampleWorkbooks, conversionHistory } from './data/mockData';
+import { authApi, workbooksApi } from './api_client';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    return localStorage.getItem('antic_auth') === 'true';
+    return Boolean(localStorage.getItem('sheetflow_token') || localStorage.getItem('antic_auth') === 'true');
   });
+
+  useEffect(() => {
+    async function checkAuth() {
+      const token = localStorage.getItem('sheetflow_token');
+      if (token) {
+        try {
+          await authApi.getMe();
+          setIsAuthenticated(true);
+        } catch (e) {
+          console.warn('Session expirée ou invalide:', e);
+          authApi.logout();
+          setIsAuthenticated(false);
+        }
+      }
+    }
+    checkAuth();
+  }, []);
   const [activeView, setActiveView] = useState('dashboard');
   const [theme, setTheme] = useState('dark');
   const [lang, setLang] = useState(() => {
@@ -244,6 +262,7 @@ export default function App() {
         lang={lang}
         setLang={setLang}
         onLogout={() => {
+          authApi.logout();
           localStorage.setItem('antic_auth', 'false');
           localStorage.removeItem('antic_active_workbook');
           sessionStorage.removeItem('antic_session_active');

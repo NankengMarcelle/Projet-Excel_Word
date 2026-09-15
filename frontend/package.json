@@ -12,6 +12,7 @@
     "@corbe30/fortune-excel": "^2.3.3",
     "@prospera-sheet/core": "^1.1.0",
     "@prospera-sheet/react": "^1.1.0",
+    "axios": "^1.20.0",
     "jszip": "^3.10.2",
     "lucide-react": "^0.469.0",
     "react": "^18.3.1",

@@ -1,9 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { FileSpreadsheet, Info, Download, Eye, FileText, CheckCircle2, Clock, ShieldCheck, RefreshCw, ChevronRight, Upload, Plus } from 'lucide-react';
+import { FileSpreadsheet, Info, Download, Eye, FileText, CheckCircle2, Clock, ShieldCheck, RefreshCw, ChevronRight, Upload, Plus, Trash2 } from 'lucide-react';
 import WordDocumentPreviewModal from './WordDocumentPreviewModal';
+import { workbooksApi } from '../api_client';
 
-export default function WorkbookManagementView({ workbooks, onSelectWorkbook, onOpenConvertModal, onOpenUploadModal, lang = 'fr' }) {
+export default function WorkbookManagementView({ workbooks = [], onSelectWorkbook, onOpenConvertModal, onOpenUploadModal, lang = 'fr', onRefreshWorkbooks }) {
     const [previewWb, setPreviewWb] = useState(null);
+    const [deletingId, setDeletingId] = useState(null);
+
+    const handleDelete = async (wbId) => {
+        if (!window.confirm(lang === 'fr' ? "Êtes-vous sûr de vouloir supprimer ce classeur ?" : "Are you sure you want to delete this workbook?")) return;
+        setDeletingId(wbId);
+        try {
+            await workbooksApi.delete(wbId);
+            if (onRefreshWorkbooks) onRefreshWorkbooks();
+        } catch (err) {
+            console.error('Error deleting workbook:', err);
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     return (
         <div style={{ padding: '2rem', display: 'flex', flexDirection: 'column', gap: '1.5rem', background: '#F8FAFC', minHeight: 'calc(100vh - 65px)', width: '100%' }}>

@@ -78,6 +78,46 @@
     rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
 }
 
+/* Univer (mounted as a plain DOM node — see univer/UniverSheetGrid.tsx) is given its own
+   `darkMode` flag wired to this app's actual [data-theme] setting, and that's enough for its
+   real, coordinated theme (toolbar, grid, font dropdown, cell-reference box) to render
+   correctly in either mode. But Univer's *bundled* CSS also ships some Tailwind `dark:`
+   utility classes that react directly to the OS-level prefers-color-scheme media query,
+   completely independent of the `darkMode` flag it was actually given. Those two mechanisms
+   only ever disagree in one real case — confirmed live: the app's theme explicitly set to
+   Light while the OS/browser itself prefers dark — where Univer's own theme correctly renders
+   light, but those leftover classes still fire as if it were dark, producing invisible
+   white-on-white menu text and a dark cell-reference "Name Box" sitting oddly in an otherwise
+   light toolbar. Scoped to `[data-theme="light"]` specifically — not just the media query
+   alone — so this never fires when the app (and Univer) are actually showing dark, where
+   Univer's own dark background already matches these same classes correctly. Within this
+   scope there's no genuine dark surface anywhere to contrast against, so unlike a real dark
+   theme this doesn't need exceptions — every one of these classes gets neutralized back to
+   its light-mode equivalent, not just re-paired with a matching dark counterpart. */
+@media (prefers-color-scheme: dark) {
+  /* Excludes elements that also carry a bare (non dark:-prefixed) univer-bg-gray-700 class —
+     those are tooltip-style bubbles that are *always* a dark bubble with white text by design,
+     in either app theme (their `dark:` variant pair, e.g. on the "Taille de police" hover
+     tooltip, inverts to a light bg + dark text, but that variant is inactive here since
+     Univer's own darkMode is false in light mode) — forcing their text dark here left dark text
+     stranded on their still-dark bubble. */
+  :root[data-theme="light"] [class*="univer-text-white"]:not([class~="univer-bg-gray-700"]) {
+    color: #1b1c1f !important;
+  }
+  /* The Name Box has no plain (non dark:) background utility at all — its light-mode
+     appearance is simply transparent, showing the toolbar behind it. */
+  :root[data-theme="light"] [class*="univer-bg-gray-900"] {
+    background-color: transparent !important;
+  }
+  /* Toolbar buttons pair their dark text override with an always-present light-mode hover
+     highlight (`hover:univer-bg-gray-100`) *and* a dark-mode-only hover override
+     (`dark:hover:!univer-bg-gray-700`) — restore the intended light hover color specifically,
+     rather than just clearing it to transparent and losing hover feedback entirely. */
+  :root[data-theme="light"] [class*="univer-bg-gray-700"]:hover {
+    background-color: #f3f4f6 !important;
+  }
+}
+
 #root {
   min-height: 100svh;
   display: flex;

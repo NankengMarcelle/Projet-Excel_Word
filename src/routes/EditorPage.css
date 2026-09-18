@@ -295,31 +295,11 @@
   }
 }
 
-/* ---- Child-sheet sync strip: its own small conditional row (see ChildSheetSyncPanel's own
-   null-return when there are no child sheets yet) — Create Child Sheet and Convert both live in
-   the single title row now (EditorTopBar), not here. No background/border of its own — inherits
-   .editor-chrome's navy backdrop so it reads as part of the same chrome, not a mismatched band. ---- */
-
-.editor-sync-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 16px 10px;
-}
-
 .toolbar-panel {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-}
-
-.editor-toolbar-label {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #e0e7ff;
-  white-space: nowrap;
 }
 
 .editor-panel-field {
@@ -339,18 +319,6 @@
 .editor-panel-error {
   font-size: 12.5px;
   color: var(--danger);
-}
-
-/* .editor-panel-note/.editor-panel-error also render directly in the navy sync strip (via
-   ChildSheetSyncPanel), not just inside the white .modal-card — the base colors above are tuned
-   for a white background and read poorly on navy, so lighten both here without touching their
-   modal usage (ConvertToWordModal, ChildSheetModal). */
-.editor-sync-strip .editor-panel-note {
-  color: #e0e7ff;
-}
-
-.editor-sync-strip .editor-panel-error {
-  color: #fca5a5;
 }
 
 .editor-action-btn {
@@ -451,29 +419,64 @@
   color: var(--danger);
 }
 
-/* ---- Sync list: a horizontal strip of chips, one per child sheet ---- */
+/* ---- Child sheets dropdown: a single trigger button (matching Create Child Sheet/Convert's own
+   footprint in the title bar) that opens a popover listing every child sheet — replaces an
+   earlier design where this was its own always-visible, variable-length strip below the title
+   bar, which took up permanent space and looked out of place once there were several sheets. ---- */
 
-.sync-list-inline {
+.child-sheets-outdated-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.child-sheets-menu {
+  /* Portaled to document.body (see ChildSheetSyncPanel.tsx) so .editor-chrome's own
+     `overflow: hidden` (needed for its collapse/expand animation) can't clip it — position is
+     viewport-relative (fixed), matching the coordinates getBoundingClientRect() hands back. */
+  position: fixed;
+  z-index: 1000;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+  padding: 10px;
+  min-width: 280px;
+  max-width: 360px;
+}
+
+.child-sheets-menu-list {
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 260px;
+  overflow-y: auto;
 }
 
-.sync-chip {
+.child-sheets-menu-item {
   display: flex;
   align-items: center;
   gap: 8px;
   background: var(--code-bg);
   border-radius: 8px;
-  padding: 4px 6px 4px 10px;
+  padding: 6px 8px 6px 10px;
   font-size: 12.5px;
 }
 
 .sync-chip-name {
-  max-width: 140px;
+  flex: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

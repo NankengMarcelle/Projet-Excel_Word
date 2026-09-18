@@ -15,7 +15,6 @@ import { UniverSheetGrid, type StructuralEditOperation, type UniverSheetGridHand
 import { useDebouncedAutosave, type SaveStatus } from "../hooks/useDebouncedAutosave";
 import { EditorTopBar } from "../components/editor/EditorTopBar";
 import { ChildSheetModal } from "../components/childSheet/ChildSheetModal";
-import { ChildSheetSyncPanel } from "../components/sync/ChildSheetSyncPanel";
 import { DeleteSheetWarningModal } from "../components/editor/DeleteSheetWarningModal";
 import { ChevronIcon } from "../components/icons/EditorIcons";
 import { EditorFooter } from "../components/editor/EditorFooter";
@@ -354,20 +353,9 @@ export function EditorPage() {
           worksheets={sortedWorksheets}
           canCreateChildSheet={!!firstOriginalWorksheetId}
           onCreateChildSheet={() => setIsChildSheetModalOpen(true)}
+          onChildSheetSynced={() => setSyncVersion((v) => v + 1)}
           onToggleCollapsed={toggleChromeCollapsed}
         />
-
-        {/* Its own small, conditional strip — not folded into the title bar above — because
-            unlike Create Child Sheet/Convert (single buttons), this is a variable-length list
-            of chips that only exists at all once a child sheet has actually been created
-            (ChildSheetSyncPanel itself renders nothing until then, see its own null-return). */}
-        {workbookId && (
-          <ChildSheetSyncPanel
-            workbookId={workbookId}
-            worksheets={sortedWorksheets}
-            onSynced={() => setSyncVersion((v) => v + 1)}
-          />
-        )}
       </div>
       {isChromeCollapsed && (
         <div className="editor-collapse-strip">

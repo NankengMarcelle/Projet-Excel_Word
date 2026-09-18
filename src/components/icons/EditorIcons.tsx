@@ -80,6 +80,15 @@ export function SaveIcon({ className }: IconProps) {
   );
 }
 
+export function LayersIcon({ className }: IconProps) {
+  return (
+    <svg {...base} className={className} aria-hidden="true">
+      <path d="m12 3 9 5-9 5-9-5 9-5Z" />
+      <path d="m3 13 9 5 9-5" />
+    </svg>
+  );
+}
+
 export function WordDocIcon({ className }: IconProps) {
   return (
     <svg {...base} className={className} aria-hidden="true">

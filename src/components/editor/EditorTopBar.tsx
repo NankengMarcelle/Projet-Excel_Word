@@ -9,6 +9,7 @@ import { GearIcon } from "../icons/SettingsIcons";
 import { SettingsModal } from "../settings/SettingsModal";
 import { ConvertToWordModal } from "../conversion/ConvertToWordModal";
 import { SaveStatusIndicator } from "./SaveStatusIndicator";
+import { ChildSheetSyncPanel } from "../sync/ChildSheetSyncPanel";
 import type { WorksheetRead } from "../../types/worksheet";
 import { copy } from "../../i18n/copy";
 import { useLang } from "../../i18n/useLang";
@@ -21,6 +22,7 @@ interface EditorTopBarProps {
   worksheets: WorksheetRead[];
   canCreateChildSheet: boolean;
   onCreateChildSheet: () => void;
+  onChildSheetSynced: () => void;
   onToggleCollapsed: () => void;
 }
 
@@ -38,6 +40,7 @@ export function EditorTopBar({
   worksheets,
   canCreateChildSheet,
   onCreateChildSheet,
+  onChildSheetSynced,
   onToggleCollapsed,
 }: EditorTopBarProps) {
   const { lang } = useLang();
@@ -123,6 +126,7 @@ export function EditorTopBar({
           <PlusIcon /> {t.childSheetLabel}
         </button>
       )}
+      <ChildSheetSyncPanel workbookId={workbookId} worksheets={worksheets} onSynced={onChildSheetSynced} />
       {worksheets.length > 0 && (
         <button type="button" className="editor-action-btn small" onClick={() => setIsConvertOpen(true)}>
           <WordDocIcon /> {t.convertLabel}

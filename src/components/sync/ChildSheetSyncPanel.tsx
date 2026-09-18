@@ -1,10 +1,19 @@
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getChildSheetStatus, listChildSheets, syncChildSheet } from "../../api/childSheets";
 import { ApiError } from "../../api/client";
 import type { WorksheetRead } from "../../types/worksheet";
+import { LayersIcon, ChevronIcon } from "../icons/EditorIcons";
+import { copy } from "../../i18n/copy";
+import { useLang } from "../../i18n/useLang";
 import { OutdatedBadge } from "./OutdatedBadge";
 import { SyncButton } from "./SyncButton";
 
+// A collapsed trigger button (matching Create Child Sheet/Convert's own single-button footprint
+// in the title bar) that opens a dropdown listing every child sheet — replaces an earlier design
+// where this was its own always-visible, variable-length horizontal strip below the title bar,
+// which took up permanent space and looked out of place once there were several child sheets.
 export function ChildSheetSyncPanel({
   workbookId,
   worksheets,
@@ -14,7 +23,18 @@ export function ChildSheetSyncPanel({
   worksheets: WorksheetRead[];
   onSynced: () => void;
 }) {
+  const { lang } = useLang();
+  const t = copy[lang];
   const queryClient = useQueryClient();
+  const [isOpen, setIsOpen] = useState(false);
+  // The trigger lives inside .editor-chrome, which has `overflow: hidden` for its own
+  // collapse/expand animation — an absolutely-positioned menu nested inside it gets clipped
+  // regardless of z-index (confirmed live: the menu was present in the DOM, just invisible).
+  // Rendered into a portal instead, positioned from the trigger's own measured rect, so nothing
+  // about it depends on an ancestor's overflow or stacking context.
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; right: number } | null>(null);
 
   const { data: relationships } = useQuery({
     queryKey: ["child-sheets", workbookId],
@@ -48,32 +68,91 @@ export function ChildSheetSyncPanel({
     },
   });
 
+  // Closes the dropdown on an outside click, same expectation as any native <select>/menu, and
+  // on scroll/resize — its position is captured once, at open time (see toggleOpen below), not
+  // tracked live, so keeping it open across a layout change would leave it visibly adrift.
+  useEffect(() => {
+    if (!isOpen) return;
+    function handlePointerDown(event: PointerEvent) {
+      const target = event.target as Node;
+      if (!triggerRef.current?.contains(target) && !menuRef.current?.contains(target)) {
+        setIsOpen(false);
+      }
+    }
+    function handleReposition() {
+      setIsOpen(false);
+    }
+    document.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("scroll", handleReposition, true);
+    window.addEventListener("resize", handleReposition);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("scroll", handleReposition, true);
+      window.removeEventListener("resize", handleReposition);
+    };
+  }, [isOpen]);
+
   if (!relationships || relationships.length === 0) return null;
 
-  return (
-    <div className="editor-sync-strip" aria-label="Child sheets">
-      <span className="editor-toolbar-label">Child sheets:</span>
-      <ul className="sync-list-inline">
-        {relationships.map((relationship, index) => {
-          const childWorksheet = worksheets.find((w) => w.id === relationship.child_worksheet_id);
-          const status = statusQueries[index];
-          const isOutdated = status?.data?.is_outdated ?? false;
-          const isSyncingThis = mutation.isPending && mutation.variables === relationship.id;
+  const outdatedCount = statusQueries.filter((status) => status.data?.is_outdated).length;
 
-          return (
-            <li key={relationship.id} className="sync-chip">
-              <span className="sync-chip-name">{childWorksheet?.name ?? "Unknown sheet"}</span>
-              <OutdatedBadge isOutdated={isOutdated} />
-              <SyncButton isSyncing={isSyncingThis} onSync={() => mutation.mutate(relationship.id)} />
-            </li>
-          );
-        })}
-      </ul>
-      {mutation.isError && (
-        <span role="alert" className="editor-panel-error">
-          {mutation.error instanceof ApiError ? String(mutation.error.detail) : "Failed to synchronize"}
-        </span>
-      )}
-    </div>
+  function toggleOpen() {
+    if (!isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setMenuPosition({ top: rect.bottom + 6, right: window.innerWidth - rect.right });
+    }
+    setIsOpen((open) => !open);
+  }
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        className="editor-action-btn small"
+        onClick={toggleOpen}
+        aria-expanded={isOpen}
+        aria-haspopup="true"
+      >
+        <LayersIcon />
+        {t.childSheetsMenuLabel}
+        {outdatedCount > 0 && <span className="child-sheets-outdated-count">{outdatedCount}</span>}
+        <ChevronIcon className={isOpen ? "flip" : undefined} />
+      </button>
+
+      {isOpen &&
+        menuPosition &&
+        createPortal(
+          <div
+            className="child-sheets-menu"
+            role="menu"
+            ref={menuRef}
+            style={{ top: menuPosition.top, right: menuPosition.right }}
+          >
+            <ul className="child-sheets-menu-list">
+              {relationships.map((relationship, index) => {
+                const childWorksheet = worksheets.find((w) => w.id === relationship.child_worksheet_id);
+                const status = statusQueries[index];
+                const isOutdated = status?.data?.is_outdated ?? false;
+                const isSyncingThis = mutation.isPending && mutation.variables === relationship.id;
+
+                return (
+                  <li key={relationship.id} className="child-sheets-menu-item">
+                    <span className="sync-chip-name">{childWorksheet?.name ?? "Unknown sheet"}</span>
+                    <OutdatedBadge isOutdated={isOutdated} />
+                    <SyncButton isSyncing={isSyncingThis} onSync={() => mutation.mutate(relationship.id)} />
+                  </li>
+                );
+              })}
+            </ul>
+            {mutation.isError && (
+              <span role="alert" className="editor-panel-error">
+                {mutation.error instanceof ApiError ? String(mutation.error.detail) : "Failed to synchronize"}
+              </span>
+            )}
+          </div>,
+          document.body
+        )}
+    </>
   );
 }

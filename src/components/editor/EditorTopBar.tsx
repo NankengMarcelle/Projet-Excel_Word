@@ -10,6 +10,7 @@ import { SettingsModal } from "../settings/SettingsModal";
 import { ConvertToWordModal } from "../conversion/ConvertToWordModal";
 import { SaveStatusIndicator } from "./SaveStatusIndicator";
 import { ChildSheetSyncPanel } from "../sync/ChildSheetSyncPanel";
+import type { ComputedCellValue } from "../../univer/UniverSheetGrid";
 import type { WorksheetRead } from "../../types/worksheet";
 import { copy } from "../../i18n/copy";
 import { useLang } from "../../i18n/useLang";
@@ -24,6 +25,7 @@ interface EditorTopBarProps {
   onCreateChildSheet: () => void;
   onChildSheetSynced: () => void;
   onToggleCollapsed: () => void;
+  getComputedValues: (worksheetId: string) => ComputedCellValue[];
 }
 
 // A single row now, not two stacked bars: filename/Save on the left (Save leftmost among the
@@ -42,6 +44,7 @@ export function EditorTopBar({
   onCreateChildSheet,
   onChildSheetSynced,
   onToggleCollapsed,
+  getComputedValues,
 }: EditorTopBarProps) {
   const { lang } = useLang();
   const t = copy[lang];
@@ -126,7 +129,12 @@ export function EditorTopBar({
           <PlusIcon /> {t.childSheetLabel}
         </button>
       )}
-      <ChildSheetSyncPanel workbookId={workbookId} worksheets={worksheets} onSynced={onChildSheetSynced} />
+      <ChildSheetSyncPanel
+        workbookId={workbookId}
+        worksheets={worksheets}
+        onSynced={onChildSheetSynced}
+        getComputedValues={getComputedValues}
+      />
       {worksheets.length > 0 && (
         <button type="button" className="editor-action-btn small" onClick={() => setIsConvertOpen(true)}>
           <WordDocIcon /> {t.convertLabel}

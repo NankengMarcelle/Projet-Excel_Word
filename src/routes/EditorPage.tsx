@@ -11,7 +11,12 @@ import {
   updateWorksheet,
 } from "../api/worksheets";
 import { backendToUniverWorksheetData, extractCellValues } from "../univer/adapter";
-import { UniverSheetGrid, type StructuralEditOperation, type UniverSheetGridHandle } from "../univer/UniverSheetGrid";
+import {
+  UniverSheetGrid,
+  type ComputedCellValue,
+  type StructuralEditOperation,
+  type UniverSheetGridHandle,
+} from "../univer/UniverSheetGrid";
 import { useDebouncedAutosave, type SaveStatus } from "../hooks/useDebouncedAutosave";
 import { EditorTopBar } from "../components/editor/EditorTopBar";
 import { ChildSheetModal } from "../components/childSheet/ChildSheetModal";
@@ -43,12 +48,14 @@ function EditorWorkbookReady({
   worksheetDataList,
   onStatusChange,
   onFlushReady,
+  onComputedValuesReady,
 }: {
   workbookId: string;
   initialWorksheets: IWorksheetData[];
   worksheetDataList: WorksheetData[];
   onStatusChange: (status: SaveStatus) => void;
   onFlushReady: (flush: () => void) => void;
+  onComputedValuesReady: (fn: (worksheetId: string) => ComputedCellValue[]) => void;
 }) {
   const { lang } = useLang();
   const t = copy[lang];
@@ -170,6 +177,12 @@ function EditorWorkbookReady({
   useEffect(() => {
     onFlushReady(() => void flushAll());
   }, [flushAll, onFlushReady]);
+  useEffect(() => {
+    // A stable wrapper, not gridRef.current itself — registered once, but reads gridRef.current
+    // fresh on every call, so it keeps working across the ref being (re)attached (e.g. a
+    // lang-triggered Univer recreate) without needing to re-register.
+    onComputedValuesReady((worksheetId) => gridRef.current?.getComputedValues(worksheetId) ?? []);
+  }, [onComputedValuesReady]);
 
   return (
     <>
@@ -209,11 +222,13 @@ function EditorWorkbook({
   worksheets,
   onStatusChange,
   onFlushReady,
+  onComputedValuesReady,
 }: {
   workbookId: string;
   worksheets: WorksheetRead[];
   onStatusChange: (status: SaveStatus) => void;
   onFlushReady: (flush: () => void) => void;
+  onComputedValuesReady: (fn: (worksheetId: string) => ComputedCellValue[]) => void;
 }) {
   const { lang } = useLang();
   const t = copy[lang];
@@ -267,6 +282,7 @@ function EditorWorkbook({
       worksheetDataList={worksheetDataList}
       onStatusChange={onStatusChange}
       onFlushReady={onFlushReady}
+      onComputedValuesReady={onComputedValuesReady}
     />
   );
 }
@@ -302,6 +318,24 @@ export function EditorPage() {
     flushRef.current = flush;
   }, []);
   const handleSave = useCallback(() => flushRef.current(), []);
+
+  // Same hand-up pattern as flushRef above, for reading a worksheet's *live* Univer-computed
+  // formula values — needed by child-sheet create/sync so a stale/missing backend-side formula
+  // cache (openpyxl has no formula engine) doesn't leave totals blank. See CLAUDE.md's
+  // "Insert/delete row and column" section for the real workbook this was found against.
+  const computedValuesRef = useRef<(worksheetId: string) => ComputedCellValue[]>(
+    () => []
+  );
+  const handleComputedValuesReady = useCallback(
+    (fn: (worksheetId: string) => ComputedCellValue[]) => {
+      computedValuesRef.current = fn;
+    },
+    []
+  );
+  const getComputedValues = useCallback(
+    (worksheetId: string) => computedValuesRef.current(worksheetId),
+    []
+  );
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -355,6 +389,7 @@ export function EditorPage() {
           onCreateChildSheet={() => setIsChildSheetModalOpen(true)}
           onChildSheetSynced={() => setSyncVersion((v) => v + 1)}
           onToggleCollapsed={toggleChromeCollapsed}
+          getComputedValues={getComputedValues}
         />
       </div>
       {isChromeCollapsed && (
@@ -378,6 +413,7 @@ export function EditorPage() {
           worksheets={sortedWorksheets}
           onStatusChange={setSaveStatus}
           onFlushReady={handleFlushReady}
+          onComputedValuesReady={handleComputedValuesReady}
         />
       )}
 
@@ -388,6 +424,7 @@ export function EditorPage() {
           defaultParentWorksheetId={firstOriginalWorksheetId}
           onClose={() => setIsChildSheetModalOpen(false)}
           onCreated={() => setIsChildSheetModalOpen(false)}
+          getComputedValues={getComputedValues}
         />
       )}
     </div>

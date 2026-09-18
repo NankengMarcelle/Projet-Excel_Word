@@ -4,6 +4,7 @@ import type {
   ChildSheetCreateResponse,
   ChildSheetStatus,
   SheetRelationshipRead,
+  SyncChildSheetRequest,
 } from "../types/sheetRelationship";
 
 export function createChildSheet(
@@ -26,9 +27,11 @@ export function getChildSheetStatus(
 
 export function syncChildSheet(
   workbookId: string,
-  relationshipId: string
+  relationshipId: string,
+  payload?: SyncChildSheetRequest
 ): Promise<SheetRelationshipRead> {
   return apiClient.post<SheetRelationshipRead>(
-    `/workbooks/${workbookId}/child-sheets/${relationshipId}/sync`
+    `/workbooks/${workbookId}/child-sheets/${relationshipId}/sync`,
+    payload
   );
 }

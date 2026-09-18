@@ -118,12 +118,26 @@ interface UniverSheetGridProps {
   onSheetDeleted?: (worksheetId: string) => void;
 }
 
+export interface ComputedCellValue {
+  row: number;
+  column: number;
+  value: unknown;
+}
+
 export interface UniverSheetGridHandle {
   // Re-issues a sheet deletion Univer's own onBeforeSheetDelete check already cancelled once —
   // call only after the caller has independently confirmed it should proceed (e.g. the user
   // accepted a "this has dependents" warning). fWorkbook.deleteSheet() dispatches the exact
   // same sheet.mutation.remove-sheet command a native tab-menu delete would.
   confirmDeleteSheet: (worksheetId: string) => void;
+  // Finds every formula cell in a worksheet's data range and reads its *current, live* value
+  // from Univer's own client-side formula engine — self-contained (the caller doesn't need to
+  // separately know which cells are formulas): openpyxl's backend-side cache for these can be
+  // stale or entirely missing (openpyxl has no formula engine of its own; see CLAUDE.md's
+  // "Insert/delete row and column" section's totals finding). Returned row/column are
+  // 1-indexed, matching this app's convention everywhere else. Returns an empty array if the
+  // worksheet isn't found (e.g. a stale id after a delete).
+  getComputedValues: (worksheetId: string) => ComputedCellValue[];
 }
 
 export const UniverSheetGrid = forwardRef<UniverSheetGridHandle, UniverSheetGridProps>(function UniverSheetGrid(
@@ -183,6 +197,35 @@ export const UniverSheetGrid = forwardRef<UniverSheetGridHandle, UniverSheetGrid
       confirmDeleteSheet: (worksheetId: string) => {
         approvedDeletionsRef.current.add(worksheetId);
         univerAPIRef.current?.getActiveWorkbook()?.deleteSheet(worksheetId);
+      },
+      getComputedValues: (worksheetId: string) => {
+        const worksheet = univerAPIRef.current?.getActiveWorkbook()?.getSheetBySheetId(worksheetId);
+        if (!worksheet) return [];
+        // getDataRange() mirrors Excel's own "used range" concept — scanning exactly that
+        // (not the sheet's full declared row/column count, which can be dramatically larger
+        // than any real content) for formula cells specifically. getFormulas() returns an
+        // empty string for a non-formula cell, so a plain truthiness check finds exactly the
+        // cells worth overriding. getValues() (plural, matching the same range) is the
+        // *computed* result of each cell — getFormula()/getFormulas() are the separate
+        // methods for the formula text itself, so this can't accidentally hand back
+        // "=SUM(...)" instead of the number it evaluates to.
+        const dataRange = worksheet.getDataRange();
+        const formulas = dataRange.getFormulas();
+        const values = dataRange.getValues();
+        const startRow = dataRange.getRow();
+        const startColumn = dataRange.getColumn();
+        const results: ComputedCellValue[] = [];
+        formulas.forEach((formulaRow, rowOffset) => {
+          formulaRow.forEach((formula, colOffset) => {
+            if (!formula) return;
+            results.push({
+              row: startRow + rowOffset + 1,
+              column: startColumn + colOffset + 1,
+              value: values[rowOffset]?.[colOffset] ?? null,
+            });
+          });
+        });
+        return results;
       },
     }),
     []

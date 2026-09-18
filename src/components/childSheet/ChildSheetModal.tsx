@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { listWorksheetColumns } from "../../api/worksheets";
 import { createChildSheet } from "../../api/childSheets";
 import { ApiError } from "../../api/client";
+import type { ComputedCellValue } from "../../univer/UniverSheetGrid";
 import type { FilterConditionGroup } from "../../types/filter";
 import type { WorksheetRead } from "../../types/worksheet";
 import { ColumnPicker } from "./ColumnPicker";
@@ -14,12 +15,14 @@ export function ChildSheetModal({
   defaultParentWorksheetId,
   onClose,
   onCreated,
+  getComputedValues,
 }: {
   workbookId: string;
   worksheets: WorksheetRead[];
   defaultParentWorksheetId: string;
   onClose: () => void;
   onCreated: (childWorksheetId: string) => void;
+  getComputedValues: (worksheetId: string) => ComputedCellValue[];
 }) {
   const queryClient = useQueryClient();
   const [parentWorksheetId, setParentWorksheetId] = useState(defaultParentWorksheetId);
@@ -47,6 +50,10 @@ export function ChildSheetModal({
         header_end_row: headerEndRow,
         selected_columns: selectedColumns,
         filter_criteria: filterGroup,
+        // The parent's formula cells may have no valid backend-side cache at all (openpyxl
+        // has no formula engine) — Univer, already rendering the parent live, has the real
+        // answer.
+        computed_values: getComputedValues(parentWorksheetId),
       }),
     onSuccess: (response) => {
       void queryClient.invalidateQueries({ queryKey: ["workbooks", workbookId] });

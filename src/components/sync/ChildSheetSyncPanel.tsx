@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getChildSheetStatus, listChildSheets, syncChildSheet } from "../../api/childSheets";
 import { ApiError } from "../../api/client";
+import type { ComputedCellValue } from "../../univer/UniverSheetGrid";
 import type { WorksheetRead } from "../../types/worksheet";
 import { LayersIcon, ChevronIcon } from "../icons/EditorIcons";
 import { copy } from "../../i18n/copy";
@@ -18,10 +19,12 @@ export function ChildSheetSyncPanel({
   workbookId,
   worksheets,
   onSynced,
+  getComputedValues,
 }: {
   workbookId: string;
   worksheets: WorksheetRead[];
   onSynced: () => void;
+  getComputedValues: (worksheetId: string) => ComputedCellValue[];
 }) {
   const { lang } = useLang();
   const t = copy[lang];
@@ -50,7 +53,13 @@ export function ChildSheetSyncPanel({
   });
 
   const mutation = useMutation({
-    mutationFn: (relationshipId: string) => syncChildSheet(workbookId, relationshipId),
+    mutationFn: (relationshipId: string) => {
+      // The parent's formula cells may have no valid backend-side cache at all (openpyxl has
+      // no formula engine) — Univer, already rendering the parent live, has the real answer.
+      const relationship = relationships?.find((r) => r.id === relationshipId);
+      const computedValues = relationship ? getComputedValues(relationship.parent_worksheet_id) : [];
+      return syncChildSheet(workbookId, relationshipId, { computed_values: computedValues });
+    },
     onSuccess: (_data, relationshipId) => {
       void queryClient.invalidateQueries({ queryKey: ["child-sheets", workbookId] });
 

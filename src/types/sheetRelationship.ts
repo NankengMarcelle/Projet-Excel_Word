@@ -1,3 +1,4 @@
+import type { ComputedCellValue } from "../univer/UniverSheetGrid";
 import type { WorksheetRead } from "./worksheet";
 import type { FilterConditionGroup } from "./filter";
 
@@ -10,6 +11,15 @@ export interface ChildSheetCreateRequest {
   header_end_row: number;
   selected_columns: number[];
   filter_criteria: FilterConditionGroup;
+  // The parent's formula cells' *live*, Univer-recalculated values (see
+  // UniverSheetGrid.getComputedValues) — patched in server-side over openpyxl's own cache,
+  // which has no formula engine and can be stale or entirely missing. Optional/omittable:
+  // an empty list is a plain no-op on the backend.
+  computed_values?: ComputedCellValue[];
+}
+
+export interface SyncChildSheetRequest {
+  computed_values?: ComputedCellValue[];
 }
 
 export interface SheetRelationshipRead {

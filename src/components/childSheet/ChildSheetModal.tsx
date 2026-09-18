@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getWorksheet } from "../../api/worksheets";
+import { listWorksheetColumns } from "../../api/worksheets";
 import { createChildSheet } from "../../api/childSheets";
 import { ApiError } from "../../api/client";
 import type { FilterConditionGroup } from "../../types/filter";
@@ -23,18 +23,18 @@ export function ChildSheetModal({
 }) {
   const queryClient = useQueryClient();
   const [parentWorksheetId, setParentWorksheetId] = useState(defaultParentWorksheetId);
-  const { data: parentData } = useQuery({
-    queryKey: ["worksheets", workbookId, parentWorksheetId],
-    queryFn: () => getWorksheet(workbookId, parentWorksheetId),
+  const [headerStartRow, setHeaderStartRow] = useState(1);
+  const [headerEndRow, setHeaderEndRow] = useState(1);
+  const headerRangeValid = headerStartRow >= 1 && headerEndRow >= headerStartRow;
+
+  const { data: columns = [] } = useQuery({
+    queryKey: ["worksheet-columns", workbookId, parentWorksheetId, headerStartRow, headerEndRow],
+    queryFn: () => listWorksheetColumns(workbookId, parentWorksheetId, headerStartRow, headerEndRow),
+    enabled: headerRangeValid,
   });
 
-  const headers = (parentData?.cells ?? [])
-    .filter((cell) => cell.row === 1)
-    .sort((a, b) => a.column - b.column)
-    .map((cell) => (cell.value == null ? "" : String(cell.value)));
-
   const [childSheetName, setChildSheetName] = useState("");
-  const [selectedColumns, setSelectedColumns] = useState<string[]>([]);
+  const [selectedColumns, setSelectedColumns] = useState<number[]>([]);
   const [filterGroup, setFilterGroup] = useState<FilterConditionGroup>({ logic: "AND", conditions: [] });
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +43,8 @@ export function ChildSheetModal({
       createChildSheet(workbookId, {
         parent_worksheet_id: parentWorksheetId,
         child_sheet_name: childSheetName,
+        header_start_row: headerStartRow,
+        header_end_row: headerEndRow,
         selected_columns: selectedColumns,
         filter_criteria: filterGroup,
       }),
@@ -61,6 +63,10 @@ export function ChildSheetModal({
       setError("Child sheet name is required");
       return;
     }
+    if (!headerRangeValid) {
+      setError("Header end row must be greater than or equal to header start row");
+      return;
+    }
     if (selectedColumns.length === 0) {
       setError("Select at least one column");
       return;
@@ -68,11 +74,17 @@ export function ChildSheetModal({
     mutation.mutate();
   }
 
-  function handleParentChange(newParentId: string) {
-    setParentWorksheetId(newParentId);
-    // Selected columns/filters are specific to the previous parent's headers.
+  // Selected columns/filters are specific to the previous parent's (or header range's)
+  // columns — an index that made sense before might now point at a different column, or none
+  // at all, so it's safer to reset than to silently carry over a now-meaningless selection.
+  function resetColumnSelection() {
     setSelectedColumns([]);
     setFilterGroup({ logic: "AND", conditions: [] });
+  }
+
+  function handleParentChange(newParentId: string) {
+    setParentWorksheetId(newParentId);
+    resetColumnSelection();
   }
 
   const originalWorksheets = worksheets.filter((w) => w.sheet_type === "original");
@@ -101,10 +113,35 @@ export function ChildSheetModal({
           <input type="text" value={childSheetName} onChange={(e) => setChildSheetName(e.target.value)} />
         </label>
 
-        <ColumnPicker columns={headers} selected={selectedColumns} onChange={setSelectedColumns} />
+        <label className="editor-panel-field">
+          Header start row
+          <input
+            type="number"
+            min={1}
+            value={headerStartRow}
+            onChange={(e) => {
+              setHeaderStartRow(Number(e.target.value));
+              resetColumnSelection();
+            }}
+          />
+        </label>
+        <label className="editor-panel-field">
+          Header end row
+          <input
+            type="number"
+            min={1}
+            value={headerEndRow}
+            onChange={(e) => {
+              setHeaderEndRow(Number(e.target.value));
+              resetColumnSelection();
+            }}
+          />
+        </label>
+
+        <ColumnPicker columns={columns} selected={selectedColumns} onChange={setSelectedColumns} />
 
         <h3 className="modal-subtitle">Filter criteria</h3>
-        <FilterGroupEditor group={filterGroup} columns={headers} onChange={setFilterGroup} />
+        <FilterGroupEditor group={filterGroup} columns={columns} onChange={setFilterGroup} />
 
         {error && (
           <p role="alert" className="editor-panel-error">

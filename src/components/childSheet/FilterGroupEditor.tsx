@@ -1,5 +1,6 @@
 import type { FilterConditionGroup, FilterConditionLeaf, FilterNode, FilterOperator } from "../../types/filter";
 import { isFilterGroup } from "../../types/filter";
+import type { WorksheetColumn } from "../../types/sheetRelationship";
 
 const OPERATORS: { value: FilterOperator; label: string }[] = [
   { value: "equals", label: "equals" },
@@ -31,7 +32,7 @@ function ConditionLeafEditor({
   onRemove,
 }: {
   condition: FilterConditionLeaf;
-  columns: string[];
+  columns: WorksheetColumn[];
   onChange: (condition: FilterConditionLeaf) => void;
   onRemove: () => void;
 }) {
@@ -39,14 +40,14 @@ function ConditionLeafEditor({
     <div className="filter-condition-row">
       <select
         value={condition.column}
-        onChange={(e) => onChange({ ...condition, column: e.target.value })}
+        onChange={(e) => onChange({ ...condition, column: Number(e.target.value) })}
       >
         <option value="" disabled>
           Column
         </option>
         {columns.map((column) => (
-          <option key={column} value={column}>
-            {column}
+          <option key={column.index} value={column.index}>
+            {column.label} (Col {column.letter})
           </option>
         ))}
       </select>
@@ -85,7 +86,7 @@ export function FilterGroupEditor({
   onRemove,
 }: {
   group: FilterConditionGroup;
-  columns: string[];
+  columns: WorksheetColumn[];
   onChange: (group: FilterConditionGroup) => void;
   onRemove?: () => void;
 }) {
@@ -102,7 +103,10 @@ export function FilterGroupEditor({
   function addCondition() {
     onChange({
       ...group,
-      conditions: [...group.conditions, { column: columns[0] ?? "", operator: "equals", value: "" }],
+      conditions: [
+        ...group.conditions,
+        { column: columns[0]?.index ?? 1, operator: "equals", value: "" },
+      ],
     });
   }
 

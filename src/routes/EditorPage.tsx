@@ -1,15 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { LocaleType, type IWorksheetData } from "@univerjs/presets";
+import { LocaleType, type IWorkbookData, type IWorksheetData } from "@univerjs/presets";
 import { getWorkbook } from "../api/workbooks";
-import { getWorksheet, updateWorksheet } from "../api/worksheets";
-import { backendToUniverWorksheetData } from "../univer/adapter";
-import { UniverSheetGrid } from "../univer/UniverSheetGrid";
+import { listChildSheets } from "../api/childSheets";
+import {
+  applyWorksheetStructuralEdit,
+  deleteWorksheet,
+  getWorksheet,
+  updateWorksheet,
+} from "../api/worksheets";
+import { backendToUniverWorksheetData, extractCellValues } from "../univer/adapter";
+import { UniverSheetGrid, type StructuralEditOperation, type UniverSheetGridHandle } from "../univer/UniverSheetGrid";
 import { useDebouncedAutosave, type SaveStatus } from "../hooks/useDebouncedAutosave";
 import { EditorTopBar } from "../components/editor/EditorTopBar";
 import { ChildSheetModal } from "../components/childSheet/ChildSheetModal";
 import { ChildSheetSyncPanel } from "../components/sync/ChildSheetSyncPanel";
+import { DeleteSheetWarningModal } from "../components/editor/DeleteSheetWarningModal";
 import { ChevronIcon } from "../components/icons/EditorIcons";
 import { EditorFooter } from "../components/editor/EditorFooter";
 import { GridErrorBoundary } from "../components/editor/GridErrorBoundary";
@@ -47,13 +54,98 @@ function EditorWorkbookReady({
   const { lang } = useLang();
   const t = copy[lang];
   const queryClient = useQueryClient();
-  const { status, handleChange, flushAll } = useDebouncedAutosave(initialWorksheets, (worksheetId, edits) =>
-    updateWorksheet(workbookId, worksheetId, { edits }).then(() => {
-      // A save can be to a parent sheet, which may make one or more child sheets outdated —
-      // this invalidates the relationship list AND every per-relationship status query
-      // together, since they share this key prefix.
-      void queryClient.invalidateQueries({ queryKey: ["child-sheets", workbookId] });
-    })
+  const { status, handleChange, flushAll, beginStructuralEdit, resolveStructuralEdit } = useDebouncedAutosave(
+    initialWorksheets,
+    (worksheetId, edits) =>
+      updateWorksheet(workbookId, worksheetId, { edits }).then(() => {
+        // A save can be to a parent sheet, which may make one or more child sheets outdated —
+        // this invalidates the relationship list AND every per-relationship status query
+        // together, since they share this key prefix.
+        void queryClient.invalidateQueries({ queryKey: ["child-sheets", workbookId] });
+      })
+  );
+
+  // Insert/delete row/column used to be reconstructed from a cell-value diff, which corrupted
+  // merged cells (a shifted edit landing on a MergedCell's read-only .value) and had no way to
+  // represent the operation at all — see CLAUDE.md's "insert/delete row-column" section. Univer
+  // detects the real operation itself (UniverSheetGrid.tsx's onCommandExecuted) and this sends
+  // it to its own backend endpoint instead of folding it into the normal autosave diff.
+  const handleStructuralEdit = useCallback(
+    async (
+      worksheetId: string,
+      operation: StructuralEditOperation,
+      startIndex: number,
+      count: number,
+      freshWorkbookSnapshot: IWorkbookData
+    ) => {
+      await beginStructuralEdit(worksheetId);
+      try {
+        await applyWorksheetStructuralEdit(workbookId, worksheetId, {
+          operation,
+          start_index: startIndex,
+          count,
+        });
+        const freshSheet = freshWorkbookSnapshot.sheets[worksheetId] as IWorksheetData | undefined;
+        resolveStructuralEdit(
+          worksheetId,
+          freshSheet ? extractCellValues(freshSheet, freshWorkbookSnapshot.styles) : undefined
+        );
+        // A structural edit to a parent sheet can shift or drop a child sheet's own selected
+        // columns/header rows (see backend's worksheet_service._shift_relationships_for_
+        // structural_edit) — refresh the same query the value-edit autosave path already
+        // invalidates after every successful save.
+        void queryClient.invalidateQueries({ queryKey: ["child-sheets", workbookId] });
+      } catch {
+        resolveStructuralEdit(worksheetId);
+      }
+    },
+    [workbookId, beginStructuralEdit, resolveStructuralEdit, queryClient]
+  );
+
+  // Same query key/shape ChildSheetSyncPanel already fetches independently — React Query
+  // dedupes identical keys across components, so this doesn't add a second network request,
+  // it just gives this component (which owns the grid, and so is where a delete needs to be
+  // intercepted) synchronous access to the current relationship list too.
+  const { data: relationships } = useQuery({
+    queryKey: ["child-sheets", workbookId],
+    queryFn: () => listChildSheets(workbookId),
+  });
+
+  const gridRef = useRef<UniverSheetGridHandle>(null);
+  const [pendingSheetDeletion, setPendingSheetDeletion] = useState<{
+    worksheetId: string;
+    sheetName: string;
+    dependentSheetNames: string[];
+  } | null>(null);
+
+  // Called synchronously from inside Univer's own BeforeCommandExecute handler (see
+  // UniverSheetGrid.tsx) — must return a plain boolean, not a Promise, so this can only ever
+  // consult data already in hand (the relationships query above), never fetch anything fresh.
+  const handleBeforeSheetDelete = useCallback(
+    (worksheetId: string) => {
+      const dependents = (relationships ?? []).filter((r) => r.parent_worksheet_id === worksheetId);
+      if (dependents.length === 0) return true;
+      const sheetName = worksheetDataList.find((w) => w.id === worksheetId)?.name ?? worksheetId;
+      const dependentSheetNames = dependents.map(
+        (r) => worksheetDataList.find((w) => w.id === r.child_worksheet_id)?.name ?? r.child_worksheet_id
+      );
+      setPendingSheetDeletion({ worksheetId, sheetName, dependentSheetNames });
+      return false;
+    },
+    [relationships, worksheetDataList]
+  );
+
+  // The single place that persists a sheet deletion to the backend — fired by UniverSheetGrid
+  // once Univer's own model has actually removed the sheet, whether that happened immediately
+  // (no dependents) or after this app's own warning was explicitly confirmed below.
+  const handleSheetDeleted = useCallback(
+    (worksheetId: string) => {
+      void deleteWorksheet(workbookId, worksheetId).then(() => {
+        void queryClient.invalidateQueries({ queryKey: ["workbooks", workbookId] });
+        void queryClient.invalidateQueries({ queryKey: ["child-sheets", workbookId] });
+      });
+    },
+    [workbookId, queryClient]
   );
 
   // Tracked via Univer's own ActiveSheetChanged event (its native tab strip owns which sheet is
@@ -86,14 +178,29 @@ function EditorWorkbookReady({
         <div className="editor-grid-card">
           <GridErrorBoundary message={t.gridErrorMessage} retryLabel={t.tryAgain}>
             <UniverSheetGrid
+              ref={gridRef}
               workbookData={workbookData}
               onChange={handleChange}
               onActiveSheetChange={setActiveSheetId}
+              onStructuralEdit={handleStructuralEdit}
+              onBeforeSheetDelete={handleBeforeSheetDelete}
+              onSheetDeleted={handleSheetDeleted}
             />
           </GridErrorBoundary>
         </div>
       </div>
       <EditorFooter activeSheet={activeSheet} />
+      {pendingSheetDeletion && (
+        <DeleteSheetWarningModal
+          sheetName={pendingSheetDeletion.sheetName}
+          dependentSheetNames={pendingSheetDeletion.dependentSheetNames}
+          onCancel={() => setPendingSheetDeletion(null)}
+          onConfirm={() => {
+            gridRef.current?.confirmDeleteSheet(pendingSheetDeletion.worksheetId);
+            setPendingSheetDeletion(null);
+          }}
+        />
+      )}
     </>
   );
 }

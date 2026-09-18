@@ -113,6 +113,11 @@ export const copy = {
     failedToLoadWorkbookMsg: "Échec du chargement du classeur.",
     gridErrorMessage: "Une erreur est survenue lors de l'affichage de ce tableur.",
     tryAgain: "Réessayer",
+    deleteSheetWarningTitle: "D'autres feuilles dépendent de cette feuille",
+    deleteSheetWarningBody:
+      "Les feuilles enfants suivantes deviendront statiques (elles ne se synchroniseront plus) si vous supprimez cette feuille :",
+    deleteSheetCancel: "Annuler",
+    deleteSheetConfirm: "Supprimer quand même",
   },
   en: {
     loginHeading: "ANTIC Agent Portal",
@@ -223,5 +228,10 @@ export const copy = {
     failedToLoadWorkbookMsg: "Failed to load workbook.",
     gridErrorMessage: "Something went wrong rendering this spreadsheet.",
     tryAgain: "Try again",
+    deleteSheetWarningTitle: "Other sheets depend on this sheet",
+    deleteSheetWarningBody:
+      "The following child sheets will become static (they will no longer sync) if you delete this sheet:",
+    deleteSheetCancel: "Cancel",
+    deleteSheetConfirm: "Delete anyway",
   },
 } satisfies Record<Lang, Record<string, string | ((...args: any[]) => string)>>;

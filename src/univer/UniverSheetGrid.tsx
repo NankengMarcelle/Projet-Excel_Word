@@ -1,5 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { createUniver, LocaleType, defaultTheme, type IWorkbookData } from "@univerjs/presets";
+
+type UniverAPI = ReturnType<typeof createUniver>["univerAPI"];
 import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
 import { UniverSheetsFilterPreset } from "@univerjs/preset-sheets-filter";
 import { UniverSheetsSortPreset } from "@univerjs/preset-sheets-sort";
@@ -53,6 +55,35 @@ const LOCALE_EN_US = {
   ...sheetsConditionalFormattingEnUS,
 };
 
+export type StructuralEditOperation = "insert_row" | "remove_row" | "insert_col" | "remove_col";
+
+// Univer's own command ids for insert/delete row/column — confirmed against the installed
+// @univerjs/sheets package (not documented in its public docs). Listening for these directly
+// (via onCommandExecuted below) gives an exact, unambiguous "row 5 was inserted in sheet X"
+// signal, instead of trying to infer a structural edit from a before/after cell-value diff —
+// see hooks/useDebouncedAutosave.ts and CLAUDE.md's "insert/delete row-column" section for why
+// that approach silently corrupted merged cells.
+const STRUCTURAL_COMMAND_IDS: Record<string, StructuralEditOperation> = {
+  "sheet.mutation.insert-row": "insert_row",
+  "sheet.mutation.remove-rows": "remove_row",
+  "sheet.mutation.insert-col": "insert_col",
+  "sheet.mutation.remove-col": "remove_col",
+};
+
+const REMOVE_SHEET_COMMAND_ID = "sheet.mutation.remove-sheet";
+
+interface StructuralCommandRange {
+  startRow: number;
+  endRow: number;
+  startColumn: number;
+  endColumn: number;
+}
+
+interface StructuralCommandParams {
+  subUnitId: string;
+  range: StructuralCommandRange;
+}
+
 interface UniverSheetGridProps {
   // Read once, on mount, same as Fortune-sheet's `data` prop was — Univer has no official React
   // wrapper (confirmed: imperative DI-container architecture, mounted into a plain DOM node),
@@ -60,14 +91,45 @@ interface UniverSheetGridProps {
   workbookData: IWorkbookData;
   onChange?: (data: IWorkbookData) => void;
   onActiveSheetChange?: (sheetId: string) => void;
+  // Fired when the user inserts/deletes a row or column via Univer's own UI. worksheetId
+  // matches the backend worksheet id (Univer's subUnitId — see adapter.ts, sheet ids are
+  // seeded from the backend's own worksheet id), startIndex/count are already converted to
+  // this app's 1-indexed convention (Univer's own range is 0-indexed). freshWorkbookSnapshot
+  // is the whole workbook's state *after* Univer already applied the shift internally —
+  // onCommandExecuted fires post-execution, not pre — so the caller can re-baseline its own
+  // autosave diff against the real post-shift positions instead of the pre-shift ones.
+  onStructuralEdit?: (
+    worksheetId: string,
+    operation: StructuralEditOperation,
+    startIndex: number,
+    count: number,
+    freshWorkbookSnapshot: IWorkbookData
+  ) => void;
+  // Called synchronously, *before* Univer actually deletes a sheet (its own native tab menu →
+  // "Supprimer", already past Univer's own generic "are you sure?" confirm). Returning false
+  // cancels the deletion — used to interrupt it with this app's own warning when the sheet
+  // being deleted is a parent in a child-sheet relationship (see EditorPage.tsx). Returning
+  // true (or the prop being unset) lets it through immediately.
+  onBeforeSheetDelete?: (worksheetId: string) => boolean;
+  // Fired after a sheet deletion actually goes through — either the first attempt (no
+  // dependents, never intercepted) or a re-issued one via the imperative confirmDeleteSheet
+  // handle below (after the caller's own warning was confirmed). This is the single place
+  // that should tell the backend "this worksheet is gone," uniformly for both paths.
+  onSheetDeleted?: (worksheetId: string) => void;
 }
 
-// No forwardRef/imperative API exposed (unlike the old FortuneSheetGrid) — nothing in this
-// migration's scope needs one. Univer's formula engine computes on load by itself (confirmed:
-// the headless spike needed no explicit trigger), so there's no Fortune-sheet-style
-// calculateFormula() call to wire up, and the manual Save button only needs whatever's already
-// queued by onChange, not a fresh imperative pull.
-export function UniverSheetGrid({ workbookData, onChange, onActiveSheetChange }: UniverSheetGridProps) {
+export interface UniverSheetGridHandle {
+  // Re-issues a sheet deletion Univer's own onBeforeSheetDelete check already cancelled once —
+  // call only after the caller has independently confirmed it should proceed (e.g. the user
+  // accepted a "this has dependents" warning). fWorkbook.deleteSheet() dispatches the exact
+  // same sheet.mutation.remove-sheet command a native tab-menu delete would.
+  confirmDeleteSheet: (worksheetId: string) => void;
+}
+
+export const UniverSheetGrid = forwardRef<UniverSheetGridHandle, UniverSheetGridProps>(function UniverSheetGrid(
+  { workbookData, onChange, onActiveSheetChange, onStructuralEdit, onBeforeSheetDelete, onSheetDeleted },
+  ref
+) {
   const { lang } = useLang();
   const { theme } = useTheme();
   // Univer's darkMode is a boolean, but this app's own theme setting has a third option
@@ -100,6 +162,31 @@ export function UniverSheetGrid({ workbookData, onChange, onActiveSheetChange }:
   onChangeRef.current = onChange;
   const onActiveSheetChangeRef = useRef(onActiveSheetChange);
   onActiveSheetChangeRef.current = onActiveSheetChange;
+  const onStructuralEditRef = useRef(onStructuralEdit);
+  onStructuralEditRef.current = onStructuralEdit;
+  const onBeforeSheetDeleteRef = useRef(onBeforeSheetDelete);
+  onBeforeSheetDeleteRef.current = onBeforeSheetDelete;
+  const onSheetDeletedRef = useRef(onSheetDeleted);
+  onSheetDeletedRef.current = onSheetDeleted;
+  // Worksheet ids whose deletion has already been through onBeforeSheetDelete once and been
+  // explicitly approved (see confirmDeleteSheet below) — checked so the *second*, re-issued
+  // delete attempt isn't intercepted all over again into an infinite warn-cancel loop.
+  // One-shot: removed the moment it's consumed.
+  const approvedDeletionsRef = useRef<Set<string>>(new Set());
+  // Persisted outside the mount effect so the imperative handle (confirmDeleteSheet) can reach
+  // the current instance without needing its own copy of the effect's local variable.
+  const univerAPIRef = useRef<UniverAPI | null>(null);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      confirmDeleteSheet: (worksheetId: string) => {
+        approvedDeletionsRef.current.add(worksheetId);
+        univerAPIRef.current?.getActiveWorkbook()?.deleteSheet(worksheetId);
+      },
+    }),
+    []
+  );
 
   // Toggling the app's language mid-session tears down and recreates the whole Univer instance
   // (it has no runtime "switch locale" API — the locale is fixed at createUniver() time), which
@@ -148,6 +235,7 @@ export function UniverSheetGrid({ workbookData, onChange, onActiveSheetChange }:
       ],
     });
 
+    univerAPIRef.current = univerAPI;
     univerAPI.createUniverSheet(currentSnapshotRef.current);
 
     // SheetValueChanged fires per edit action (typing, paste, fill, sort, ...) — rather than try
@@ -170,11 +258,59 @@ export function UniverSheetGrid({ workbookData, onChange, onActiveSheetChange }:
       }
     });
 
+    const commandDisposable = univerAPI.onCommandExecuted((commandInfo) => {
+      if (commandInfo.id === REMOVE_SHEET_COMMAND_ID) {
+        // Fires once the deletion has actually happened — for the plain "no dependents" case
+        // (never intercepted below) and equally for a re-issued, already-approved delete via
+        // confirmDeleteSheet — either way, this is the single place that tells the backend a
+        // sheet is gone.
+        const params = commandInfo.params as { subUnitId: string } | undefined;
+        if (params?.subUnitId) onSheetDeletedRef.current?.(params.subUnitId);
+        return;
+      }
+
+      const operation = STRUCTURAL_COMMAND_IDS[commandInfo.id];
+      if (!operation || !onStructuralEditRef.current) return;
+      const params = commandInfo.params as StructuralCommandParams | undefined;
+      if (!params?.range) return;
+      const { range, subUnitId } = params;
+      const isRowOp = operation === "insert_row" || operation === "remove_row";
+      const startIndex = (isRowOp ? range.startRow : range.startColumn) + 1;
+      const count = (isRowOp ? range.endRow - range.startRow : range.endColumn - range.startColumn) + 1;
+      // onCommandExecuted fires after the mutation has already run, so save() here reflects
+      // the post-shift state, not the pre-shift one.
+      const freshSnapshot = univerAPI.getActiveWorkbook()?.save();
+      if (!freshSnapshot) return;
+      onStructuralEditRef.current(subUnitId, operation, startIndex, count, freshSnapshot);
+    });
+
+    // Fires *before* sheet.mutation.remove-sheet actually runs — past Univer's own native
+    // "are you sure?" confirm (that's a separate, higher-level UI command that only dispatches
+    // this mutation once accepted), but still cancelable via event.cancel. Used to interrupt a
+    // delete this app needs to warn about first (a parent sheet with existing child-sheet
+    // relationships) rather than trying to undo it after Univer's own model already applied it.
+    const beforeCommandDisposable = univerAPI.addEvent(univerAPI.Event.BeforeCommandExecute, (event) => {
+      if (event.id !== REMOVE_SHEET_COMMAND_ID) return;
+      const params = event.params as { subUnitId: string } | undefined;
+      if (!params?.subUnitId) return;
+      if (approvedDeletionsRef.current.has(params.subUnitId)) {
+        // Already warned about and explicitly confirmed via confirmDeleteSheet — let this
+        // specific, one-shot re-issue through without asking again.
+        approvedDeletionsRef.current.delete(params.subUnitId);
+        return;
+      }
+      if (onBeforeSheetDeleteRef.current && !onBeforeSheetDeleteRef.current(params.subUnitId)) {
+        event.cancel = true;
+      }
+    });
+
     return () => {
       const workbook = univerAPI.getActiveWorkbook();
       if (workbook) currentSnapshotRef.current = workbook.save();
       valueChangedDisposable.dispose();
       activeSheetDisposable.dispose();
+      commandDisposable.dispose();
+      beforeCommandDisposable.dispose();
       // Detach the DOM synchronously — an instant, clean cutover, so a lang-triggered recreate
       // never briefly shows two grids stacked while the old one waits to be torn down.
       container.remove();
@@ -205,4 +341,4 @@ export function UniverSheetGrid({ workbookData, onChange, onActiveSheetChange }:
   return (
     <div ref={wrapperRef} style={{ display: "flex", flexDirection: "column", flex: 1, minHeight: 0, width: "100%" }} />
   );
-}
+});

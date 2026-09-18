@@ -56,3 +56,15 @@ export interface CellEdit {
 export interface WorksheetEditRequest {
   edits: CellEdit[];
 }
+
+// Mirrors Univer's own structural command names — detected via univerAPI.onCommandExecuted
+// in UniverSheetGrid.tsx, rather than inferred from a cell-value diff (see
+// hooks/useDebouncedAutosave.ts for why that approach corrupts merged cells).
+export interface StructuralEditRequest {
+  operation: "insert_row" | "remove_row" | "insert_col" | "remove_col";
+  // 1-indexed, matching this app's convention everywhere else (selected_columns,
+  // header_start_row/header_end_row, CellEdit.row/column) — converted from Univer's own
+  // 0-indexed command range before being sent.
+  start_index: number;
+  count: number;
+}

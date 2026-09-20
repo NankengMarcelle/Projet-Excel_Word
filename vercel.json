@@ -1,6 +1,10 @@
 {
     "rewrites": [
         {
+            "source": "/api/backend/:path*",
+            "destination": "https://sheetflow-backend-jzbo.onrender.com/:path*"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }

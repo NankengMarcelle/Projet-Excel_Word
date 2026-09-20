@@ -1,5 +1,7 @@
+const envApiUrl = import.meta.env.VITE_API_BASE_URL as string | undefined;
 const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "/api/backend";
+  !envApiUrl || envApiUrl.includes("onrender.com") ? "/api/backend" : envApiUrl;
+
 
 
 

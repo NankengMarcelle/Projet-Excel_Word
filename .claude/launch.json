@@ -1,0 +1,31 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sheetflow-backend",
+      "runtimeExecutable": "cmd.exe",
+      "runtimeArgs": [
+        "/c",
+        "cd /d C:\\Users\\NEWBORN COMPUTER\\Desktop\\internship documentation\\ANTICS_Website_for_managing_excel_files\\sheet_Flow_backend\\backend && venv\\Scripts\\python.exe -m uvicorn app.main:app --reload"
+      ],
+      "port": 8000,
+      "autoPort": false
+    },
+    {
+      "name": "sheetflow-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--prefix",
+        "C:\\sheetflow_frontend",
+        "--",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174,
+      "autoPort": false
+    }
+  ]
+}

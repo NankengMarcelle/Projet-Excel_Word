@@ -41,13 +41,16 @@ services:
       - key: STORAGE_BACKEND
         value: "s3"
       - key: S3_ENDPOINT_URL
-        # https://<project-ref>.supabase.co/storage/v1/s3 — from the same Supabase project's
-        # Storage > S3 Connection settings as the credentials below.
-        value: ""
+        # Not secret (just identifies which Supabase project's Storage to talk to), so it's
+        # committed here rather than left blank — Blueprint sync re-applies whatever's in this
+        # file on every sync, so a blank value here would silently wipe out anything typed
+        # into the dashboard by hand the next time this file changes (exactly what happened
+        # once already: a manually-entered value here got reset to "" on the next sync).
+        value: "https://uwspkpnlbywlvnunjrcb.supabase.co/storage/v1/s3"
       - key: S3_REGION
-        value: ""
+        value: "eu-west-1"
       - key: S3_BUCKET_NAME
-        value: ""
+        value: "sheetflow_storage"
       - key: S3_ACCESS_KEY_ID
         sync: false
       - key: S3_SECRET_ACCESS_KEY

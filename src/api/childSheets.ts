@@ -20,18 +20,20 @@ export function listChildSheets(workbookId: string): Promise<SheetRelationshipRe
 
 export function getChildSheetStatus(
   workbookId: string,
-  relationshipId: string
+  childWorksheetId: string
 ): Promise<ChildSheetStatus> {
-  return apiClient.get<ChildSheetStatus>(`/workbooks/${workbookId}/child-sheets/${relationshipId}/status`);
+  return apiClient.get<ChildSheetStatus>(
+    `/workbooks/${workbookId}/child-sheets/by-child/${childWorksheetId}/status`
+  );
 }
 
 export function syncChildSheet(
   workbookId: string,
-  relationshipId: string,
+  childWorksheetId: string,
   payload?: SyncChildSheetRequest
-): Promise<SheetRelationshipRead> {
-  return apiClient.post<SheetRelationshipRead>(
-    `/workbooks/${workbookId}/child-sheets/${relationshipId}/sync`,
+): Promise<SheetRelationshipRead[]> {
+  return apiClient.post<SheetRelationshipRead[]>(
+    `/workbooks/${workbookId}/child-sheets/by-child/${childWorksheetId}/sync`,
     payload
   );
 }

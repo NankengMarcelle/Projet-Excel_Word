@@ -1,13 +1,16 @@
 import { useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { listWorksheetColumns } from "../../api/worksheets";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createChildSheet } from "../../api/childSheets";
 import { ApiError } from "../../api/client";
 import type { ComputedCellValue } from "../../univer/UniverSheetGrid";
-import type { FilterConditionGroup } from "../../types/filter";
 import type { WorksheetRead } from "../../types/worksheet";
-import { ColumnPicker } from "./ColumnPicker";
-import { FilterGroupEditor } from "./FilterGroupEditor";
+import { copy } from "../../i18n/copy";
+import { useLang } from "../../i18n/useLang";
+import {
+  ChildSheetSourceSection,
+  createEmptySourceFormState,
+  type SourceFormState,
+} from "./ChildSheetSourceSection";
 
 export function ChildSheetModal({
   workbookId,
@@ -24,36 +27,30 @@ export function ChildSheetModal({
   onCreated: (childWorksheetId: string) => void;
   getComputedValues: (worksheetId: string) => ComputedCellValue[];
 }) {
+  const { lang } = useLang();
+  const t = copy[lang];
   const queryClient = useQueryClient();
-  const [parentWorksheetId, setParentWorksheetId] = useState(defaultParentWorksheetId);
-  const [headerStartRow, setHeaderStartRow] = useState(1);
-  const [headerEndRow, setHeaderEndRow] = useState(1);
-  const headerRangeValid = headerStartRow >= 1 && headerEndRow >= headerStartRow;
-
-  const { data: columns = [] } = useQuery({
-    queryKey: ["worksheet-columns", workbookId, parentWorksheetId, headerStartRow, headerEndRow],
-    queryFn: () => listWorksheetColumns(workbookId, parentWorksheetId, headerStartRow, headerEndRow),
-    enabled: headerRangeValid,
-  });
-
   const [childSheetName, setChildSheetName] = useState("");
-  const [selectedColumns, setSelectedColumns] = useState<number[]>([]);
-  const [filterGroup, setFilterGroup] = useState<FilterConditionGroup>({ logic: "AND", conditions: [] });
+  const [sources, setSources] = useState<SourceFormState[]>([
+    createEmptySourceFormState(defaultParentWorksheetId),
+  ]);
   const [error, setError] = useState<string | null>(null);
 
   const mutation = useMutation({
     mutationFn: () =>
       createChildSheet(workbookId, {
-        parent_worksheet_id: parentWorksheetId,
         child_sheet_name: childSheetName,
-        header_start_row: headerStartRow,
-        header_end_row: headerEndRow,
-        selected_columns: selectedColumns,
-        filter_criteria: filterGroup,
-        // The parent's formula cells may have no valid backend-side cache at all (openpyxl
-        // has no formula engine) — Univer, already rendering the parent live, has the real
-        // answer.
-        computed_values: getComputedValues(parentWorksheetId),
+        sources: sources.map((source) => ({
+          parent_worksheet_id: source.parentWorksheetId,
+          header_start_row: source.headerStartRow,
+          header_end_row: source.headerEndRow,
+          selected_columns: source.selectedColumns,
+          filter_criteria: source.filterGroup,
+          // Each parent's formula cells may have no valid backend-side cache at all (openpyxl
+          // has no formula engine) — Univer, already rendering that parent live, has the real
+          // answer.
+          computed_values: getComputedValues(source.parentWorksheetId),
+        })),
       }),
     onSuccess: (response) => {
       void queryClient.invalidateQueries({ queryKey: ["workbooks", workbookId] });
@@ -64,37 +61,41 @@ export function ChildSheetModal({
     },
   });
 
+  function updateSource(index: number, next: SourceFormState) {
+    setSources((prev) => prev.map((source, i) => (i === index ? next : source)));
+  }
+
+  function addSource() {
+    setSources((prev) => [...prev, createEmptySourceFormState(defaultParentWorksheetId)]);
+  }
+
+  function removeSource(index: number) {
+    setSources((prev) => prev.filter((_, i) => i !== index));
+  }
+
   function handleSubmit() {
     setError(null);
     if (!childSheetName.trim()) {
       setError("Child sheet name is required");
       return;
     }
-    if (!headerRangeValid) {
-      setError("Header end row must be greater than or equal to header start row");
-      return;
+    for (const source of sources) {
+      if (source.headerEndRow < source.headerStartRow) {
+        setError("Header end row must be greater than or equal to header start row");
+        return;
+      }
+      if (source.selectedColumns.length === 0) {
+        setError("Select at least one column for every sheet");
+        return;
+      }
     }
-    if (selectedColumns.length === 0) {
-      setError("Select at least one column");
+    const columnCounts = new Set(sources.map((source) => source.selectedColumns.length));
+    if (columnCounts.size > 1) {
+      setError(t.columnCountMismatchError);
       return;
     }
     mutation.mutate();
   }
-
-  // Selected columns/filters are specific to the previous parent's (or header range's)
-  // columns — an index that made sense before might now point at a different column, or none
-  // at all, so it's safer to reset than to silently carry over a now-meaningless selection.
-  function resetColumnSelection() {
-    setSelectedColumns([]);
-    setFilterGroup({ logic: "AND", conditions: [] });
-  }
-
-  function handleParentChange(newParentId: string) {
-    setParentWorksheetId(newParentId);
-    resetColumnSelection();
-  }
-
-  const originalWorksheets = worksheets.filter((w) => w.sheet_type === "original");
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -106,49 +107,26 @@ export function ChildSheetModal({
       >
         <h2 className="modal-title">Create child sheet</h2>
         <label className="editor-panel-field">
-          Parent sheet
-          <select value={parentWorksheetId} onChange={(e) => handleParentChange(e.target.value)}>
-            {originalWorksheets.map((w) => (
-              <option key={w.id} value={w.id}>
-                {w.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="editor-panel-field">
           Child sheet name
           <input type="text" value={childSheetName} onChange={(e) => setChildSheetName(e.target.value)} />
         </label>
 
-        <label className="editor-panel-field">
-          Header start row
-          <input
-            type="number"
-            min={1}
-            value={headerStartRow}
-            onChange={(e) => {
-              setHeaderStartRow(Number(e.target.value));
-              resetColumnSelection();
-            }}
+        {sources.map((source, index) => (
+          <ChildSheetSourceSection
+            key={index}
+            workbookId={workbookId}
+            worksheets={worksheets}
+            value={source}
+            onChange={(next) => updateSource(index, next)}
+            onRemove={() => removeSource(index)}
+            showRemove={sources.length > 1}
+            sourceLabel={`Sheet ${index + 1}`}
           />
-        </label>
-        <label className="editor-panel-field">
-          Header end row
-          <input
-            type="number"
-            min={1}
-            value={headerEndRow}
-            onChange={(e) => {
-              setHeaderEndRow(Number(e.target.value));
-              resetColumnSelection();
-            }}
-          />
-        </label>
+        ))}
 
-        <ColumnPicker columns={columns} selected={selectedColumns} onChange={setSelectedColumns} />
-
-        <h3 className="modal-subtitle">Filter criteria</h3>
-        <FilterGroupEditor group={filterGroup} columns={columns} onChange={setFilterGroup} />
+        <button type="button" className="editor-action-btn ghost" onClick={addSource}>
+          {t.addAnotherSheetLabel}
+        </button>
 
         {error && (
           <p role="alert" className="editor-panel-error">

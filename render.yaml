@@ -56,7 +56,9 @@ services:
       - key: S3_SECRET_ACCESS_KEY
         sync: false
       - key: CORS_ORIGINS
-        # Add the frontend's actual origin(s) here (comma-separated) once known — e.g. a
-        # colleague's local Vite dev server is still http://localhost:5173 from her own
-        # browser's point of view, so the default below already covers that common case.
-        value: "http://localhost:5173,http://localhost:5174"
+        # The deployed frontend's real origin, plus the local Vite dev origins so testing
+        # against this live backend from localhost still works. Never "*" — allow_credentials=
+        # True in main.py (needed for the Authorization: Bearer header this app's auth uses)
+        # is incompatible with a wildcard origin per the CORS spec; browsers reject that
+        # combination outright regardless of what this server sends.
+        value: "https://projet-excel-word-orcin.vercel.app,http://localhost:5173,http://localhost:5174"

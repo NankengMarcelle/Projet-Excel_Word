@@ -75,6 +75,15 @@ export const copy = {
     downloadAction: "Télécharger",
     removeAction: "Supprimer",
 
+    // Word files page
+    wordFilesSubtitle: "Consultez et téléchargez les rapports Word générés à partir de vos classeurs.",
+    colSource: "Source",
+    colConverted: "Converti",
+    loadingWordFiles: "Chargement des fichiers Word...",
+    failedToLoadWordFiles: "Échec du chargement des fichiers Word.",
+    noWordFilesYet: "Aucun fichier Word pour l'instant — convertissez une feuille depuis l'éditeur pour commencer.",
+    wordFileDeleteFailed: "Échec de la suppression du fichier.",
+
     // Admin page
     adminUsersTitle: "Utilisateurs",
     loadingUsers: "Chargement des utilisateurs...",
@@ -190,6 +199,15 @@ export const copy = {
     downloading: "Downloading...",
     downloadAction: "Download",
     removeAction: "Remove",
+
+    // Word files page
+    wordFilesSubtitle: "View and download the Word reports generated from your workbooks.",
+    colSource: "Source",
+    colConverted: "Converted",
+    loadingWordFiles: "Loading Word files...",
+    failedToLoadWordFiles: "Failed to load Word files.",
+    noWordFilesYet: "No Word files yet — convert a sheet from the editor to get started.",
+    wordFileDeleteFailed: "Failed to delete the file.",
 
     // Admin page
     adminUsersTitle: "Users",

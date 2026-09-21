@@ -22,8 +22,9 @@ export function Sidebar({ user, onLogout, isMobileOpen, onMobileClose }: Sidebar
   const t = copy[lang];
   const location = useLocation();
   // The editor route (/workbooks/:id) never renders this Sidebar at all (see AppShell.tsx), so
-  // the only path this ever actually needs to match against is /workspace itself.
+  // the only paths this ever actually needs to match against are /workspace and /word-files.
   const isWorkbooks = location.pathname === "/workspace";
+  const isWordFiles = location.pathname === "/word-files";
 
   // Self-contained (not lifted to AppShell): the sidebar owns its own collapsed state and
   // persistence, same "isolated" collapsible-chrome idea already used for the editor's title
@@ -80,10 +81,15 @@ export function Sidebar({ user, onLogout, isMobileOpen, onMobileClose }: Sidebar
             <span>{t.navWorkbooks}</span>
           </Link>
 
-          <button type="button" className="shell-nav-item disabled" disabled title={t.comingSoon}>
+          <Link
+            to="/word-files"
+            className={`shell-nav-item ${isWordFiles ? "active" : ""}`}
+            title={t.navWordFiles}
+            onClick={onMobileClose}
+          >
             <FileText size={16} />
             <span>{t.navWordFiles}</span>
-          </button>
+          </Link>
 
           <button type="button" className="shell-nav-item disabled" disabled title={t.comingSoon}>
             <Bell size={16} />

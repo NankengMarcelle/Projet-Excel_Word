@@ -2,7 +2,9 @@ services:
   - type: web
     name: sheetflow-backend
     runtime: python
-    plan: free
+    # Disks require a paid instance type — Render's free plan does not support them at all, so
+    # this can no longer run on "free" once uploaded workbooks need to survive a restart/redeploy.
+    plan: starter
     # This file lives at the repo root (required for Render's Blueprint auto-detection when
     # connecting the repo) even though the actual backend code lives under backend/ — one repo,
     # shared with the frontend, per Marcelle's Project_API branch. rootDir scopes the build/
@@ -19,6 +21,15 @@ services:
     # simplest reliable way to keep a small testing deployment's schema in sync without a
     # separate manual step.
     startCommand: "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    # Render mounts this at the given path on the service's own persistent volume — survives
+    # restarts and redeploys, unlike the rest of the container's filesystem. Single instance
+    # only: a disk can't be shared across replicas, so this doesn't support horizontal scaling
+    # (fine for now — the app has no multi-instance story yet either). Resize by bumping sizeGB
+    # and redeploying; Render grows it in place, no migration needed.
+    disk:
+      name: sheetflow-storage
+      mountPath: /var/data
+      sizeGB: 1
     envVars:
       - key: PYTHON_VERSION
         value: "3.12.6"
@@ -31,7 +42,10 @@ services:
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "480"
       - key: STORAGE_ROOT
-        value: "storage"
+        # Absolute path under the persistent disk mounted above — excel_io.py's workbook_storage_path
+        # / conversion_storage_path build "{STORAGE_ROOT}/workbooks/..." and ".../conversions/..." from
+        # this and mkdir(parents=True) them on first write, so no directories need pre-creating here.
+        value: "/var/data/storage"
       - key: CORS_ORIGINS
         # Add the frontend's actual origin(s) here (comma-separated) once known — e.g. a
         # colleague's local Vite dev server is still http://localhost:5173 from her own

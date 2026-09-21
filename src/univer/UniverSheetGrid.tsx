@@ -32,6 +32,8 @@ import "@univerjs/preset-sheets-conditional-formatting/lib/index.css";
 
 import { useLang } from "../i18n/useLang";
 import { useTheme } from "../theme/useTheme";
+import { buildWorksheetMetadataUpdate, type RawConditionalFormatRule, type RawDataValidationRule } from "./adapter";
+import type { WorksheetMetadataUpdate } from "../types/worksheet";
 
 // Each preset ships its own locale pack (UI strings for its own menus/panels) — unlike
 // Fortune-sheet, specifying `locale: LocaleType.FR_FR` alone isn't enough; Univer throws
@@ -71,6 +73,37 @@ const STRUCTURAL_COMMAND_IDS: Record<string, StructuralEditOperation> = {
 };
 
 const REMOVE_SHEET_COMMAND_ID = "sheet.mutation.remove-sheet";
+
+// Every mutation id that changes sheet-level metadata (merges/freeze/column-row sizing/
+// conditional formatting/data validation/autofilter) but doesn't necessarily fire
+// SheetValueChanged at all (e.g. merging two cells with no value change) — confirmed one by one
+// against the installed bundle via a live onCommandExecuted logger, the same way
+// STRUCTURAL_COMMAND_IDS above was. Listening for these is only about kicking the existing
+// autosave debounce timer for the affected sheet (see the onCommandExecuted handler below) —
+// the actual metadata payload sent is always freshly pulled at save time via
+// getWorksheetMetadata, not cached from whatever this particular command's own params carried.
+// If this list is ever missing an id, that sheet's metadata still saves correctly the next time
+// *anything* else triggers a flush for it (a later edit, manual Save, Ctrl+S, unload) — this is
+// a promptness optimization, not the thing correctness depends on.
+const METADATA_COMMAND_IDS = new Set([
+  "sheet.mutation.add-worksheet-merge",
+  "sheet.mutation.remove-worksheet-merge",
+  "sheet.mutation.set-frozen",
+  "sheet.mutation.set-worksheet-col-width",
+  "sheet.mutation.set-worksheet-row-height",
+  "sheet.mutation.set-col-hidden",
+  "sheet.mutation.set-col-visible",
+  "sheet.mutation.set-row-hidden",
+  "sheet.mutation.set-row-visible",
+  "sheet.mutation.add-conditional-rule",
+  "sheet.mutation.set-conditional-rule",
+  "sheet.mutation.delete-conditional-rule",
+  "data-validation.mutation.addRule",
+  "data-validation.mutation.removeRule",
+  "sheet.mutation.set-filter-range",
+  "sheet.mutation.set-filter-criteria",
+  "sheet.mutation.remove-filter",
+]);
 
 interface StructuralCommandRange {
   startRow: number;
@@ -133,6 +166,12 @@ export interface ComputedCellValue {
 export interface ChangedWorksheetsSnapshot {
   sheets: Record<string, IWorksheetData>;
   styles: IWorkbookData["styles"];
+  // True when this firing came from a metadata-only mutation (merge/freeze/resize/hide/
+  // conditional formatting/data validation/autofilter — see METADATA_COMMAND_IDS) rather than a
+  // real SheetValueChanged firing. Tells useDebouncedAutosave this sheet needs a save even if
+  // its cell-value diff comes out empty, since the metadata itself is what actually changed —
+  // see the onCommandExecuted handler below.
+  metadataDirty?: boolean;
 }
 
 export interface UniverSheetGridHandle {
@@ -149,6 +188,11 @@ export interface UniverSheetGridHandle {
   // 1-indexed, matching this app's convention everywhere else. Returns an empty array if the
   // worksheet isn't found (e.g. a stale id after a delete).
   getComputedValues: (worksheetId: string) => ComputedCellValue[];
+  // Reads a worksheet's *current* merges/freeze/column-row sizing/conditional formatting/data
+  // validation/autofilter state directly off live Univer data — called fresh at save time
+  // (useDebouncedAutosave.ts), never cached from whenever a metadata command last fired, so
+  // it's never stale. Returns null if the worksheet isn't found.
+  getWorksheetMetadata: (worksheetId: string) => WorksheetMetadataUpdate | null;
 }
 
 export const UniverSheetGrid = forwardRef<UniverSheetGridHandle, UniverSheetGridProps>(function UniverSheetGrid(
@@ -237,6 +281,86 @@ export const UniverSheetGrid = forwardRef<UniverSheetGridHandle, UniverSheetGrid
           });
         });
         return results;
+      },
+      getWorksheetMetadata: (worksheetId: string) => {
+        const worksheet = univerAPIRef.current?.getActiveWorkbook()?.getSheetBySheetId(worksheetId);
+        if (!worksheet) return null;
+        const snapshot = worksheet.getSheet().getSnapshot();
+
+        // "No freeze" is represented as {startRow: -1, startColumn: -1, ySplit: 0, xSplit: 0},
+        // not an absent field — confirmed live via cancelFreeze().
+        const freezeSnapshot = snapshot.freeze;
+        const freeze =
+          freezeSnapshot && freezeSnapshot.startRow >= 0 && freezeSnapshot.startColumn >= 0
+            ? { startRow: freezeSnapshot.startRow, startColumn: freezeSnapshot.startColumn }
+            : null;
+
+        // Each rule's own `ranges` is a list (a rule can apply to several disjoint ranges) —
+        // flattened to one entry per range here since the backend's schema is one range per
+        // rule (see ConditionalFormatRule/DataValidationRule's own comments).
+        const conditionalFormats: RawConditionalFormatRule[] = [];
+        for (const entry of worksheet.getConditionalFormattingRules()) {
+          const rule = entry.rule as {
+            type?: string;
+            operator?: string;
+            value?: number;
+            style?: { bg?: { rgb?: string } };
+          };
+          if (rule.type !== "highlightCell" || typeof rule.operator !== "string") continue;
+          const value = typeof rule.value === "number" ? rule.value : null;
+          const fillColorRgb = rule.style?.bg?.rgb ?? null;
+          for (const range of entry.ranges as StructuralCommandRange[]) {
+            conditionalFormats.push({ range, operator: rule.operator, value, fillColorRgb });
+          }
+        }
+
+        const dataValidations: RawDataValidationRule[] = [];
+        for (const dv of worksheet.getDataValidations()) {
+          if (dv.getCriteriaType() !== "list") continue;
+          const listJson = dv.getCriteriaValues()?.[1];
+          let values: string[] = [];
+          if (typeof listJson === "string") {
+            try {
+              values = JSON.parse(listJson);
+            } catch {
+              values = [];
+            }
+          }
+          for (const rangeHandle of dv.getRanges()) {
+            // Univer's facade has no getter matching openpyxl's allow_blank concept
+            // (getAllowInvalid() is a different setting — whether to reject invalid entries
+            // outright vs. just warn) — defaulting true (don't flag an empty cell) matches
+            // typical spreadsheet UX and openpyxl's own default.
+            dataValidations.push({ range: rangeHandle.getRange(), values, allowBlank: true });
+          }
+        }
+
+        let autofilter: { range: StructuralCommandRange; columns: { column: number; values: string[] }[] } | null =
+          null;
+        const filter = worksheet.getFilter();
+        if (filter) {
+          const filterRange = filter.getRange().getRange() as StructuralCommandRange;
+          const columns: { column: number; values: string[] }[] = [];
+          for (let col = filterRange.startColumn; col <= filterRange.endColumn; col++) {
+            const criteria = filter.getColumnFilterCriteria(col) as
+              | { filters?: { filters?: string[] } }
+              | null;
+            if (criteria?.filters?.filters) {
+              columns.push({ column: col, values: criteria.filters.filters });
+            }
+          }
+          autofilter = { range: filterRange, columns };
+        }
+
+        return buildWorksheetMetadataUpdate({
+          freeze,
+          mergeData: (snapshot.mergeData ?? []) as StructuralCommandRange[],
+          columnData: (snapshot.columnData ?? {}) as Record<number, { w?: number; hd?: number }>,
+          rowData: (snapshot.rowData ?? {}) as Record<number, { h?: number; hd?: number }>,
+          conditionalFormats,
+          dataValidations,
+          autofilter,
+        });
       },
     }),
     []
@@ -384,6 +508,28 @@ export const UniverSheetGrid = forwardRef<UniverSheetGridHandle, UniverSheetGrid
         // sheet is gone.
         const params = commandInfo.params as { subUnitId: string } | undefined;
         if (params?.subUnitId) onSheetDeletedRef.current?.(params.subUnitId);
+        return;
+      }
+
+      if (METADATA_COMMAND_IDS.has(commandInfo.id)) {
+        // Purely to kick the existing autosave debounce timer for this one sheet — a metadata
+        // change (e.g. merging two cells) doesn't necessarily touch any cell value, so
+        // SheetValueChanged might never fire on its own. Reusing onChange with this sheet's own
+        // *current* snapshot (not an empty one) is safe: extractCellValues/diffCellValues will
+        // correctly compute zero cell edits if nothing else changed, and the actual metadata
+        // payload sent on save is always pulled fresh via getWorksheetMetadata regardless of
+        // what triggered this particular flush.
+        const params = commandInfo.params as { subUnitId?: string } | undefined;
+        const subUnitId = params?.subUnitId;
+        const worksheet = subUnitId ? univerAPI.getActiveWorkbook()?.getSheetBySheetId(subUnitId) : undefined;
+        if (worksheet && onChangeRef.current) {
+          const snapshot = worksheet.getSheet().getSnapshot();
+          onChangeRef.current({
+            sheets: { [subUnitId as string]: snapshot as IWorksheetData },
+            styles: univerAPI.getActiveWorkbook()?.getWorkbook().getStyles().toJSON() ?? {},
+            metadataDirty: true,
+          });
+        }
         return;
       }
 

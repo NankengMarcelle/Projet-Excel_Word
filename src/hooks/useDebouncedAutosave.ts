@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { IWorksheetData } from "@univerjs/presets";
 import { diffCellValues, extractCellValues, type CellSnapshotMap } from "../univer/adapter";
 import type { ChangedWorksheetsSnapshot } from "../univer/UniverSheetGrid";
-import type { CellEdit } from "../types/worksheet";
+import type { CellEdit, WorksheetMetadataUpdate } from "../types/worksheet";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
@@ -22,7 +22,12 @@ export type SaveStatus = "idle" | "saving" | "saved" | "error";
  */
 export function useDebouncedAutosave(
   initialWorksheets: IWorksheetData[],
-  saveEdits: (worksheetId: string, edits: CellEdit[]) => Promise<void>,
+  saveEdits: (worksheetId: string, edits: CellEdit[], metadata?: WorksheetMetadataUpdate) => Promise<void>,
+  // Pulls a worksheet's *current* merges/freeze/column-row sizing/conditional formatting/data
+  // validation/autofilter state fresh off live Univer data (UniverSheetGrid.tsx's
+  // getWorksheetMetadata) — called at the moment of every save, never cached from whenever a
+  // metadata command last fired, so it's never stale.
+  getMetadata: (worksheetId: string) => WorksheetMetadataUpdate | null,
   delayMs = 1000
 ) {
   const [status, setStatus] = useState<SaveStatus>("idle");
@@ -33,6 +38,10 @@ export function useDebouncedAutosave(
     Object.fromEntries(initialWorksheets.map((s) => [s.id, extractCellValues(s)]))
   );
   const pendingRef = useRef<Record<string, CellSnapshotMap>>({});
+  // Worksheet ids whose sheet-level metadata (not cell values) changed since their last save —
+  // set by handleChange when a ChangedWorksheetsSnapshot arrives with metadataDirty: true. A
+  // sheet in here still needs saving even if its cell-value diff comes out empty.
+  const metadataDirtyRef = useRef<Set<string>>(new Set());
   const savingIdsRef = useRef<Set<string>>(new Set());
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // A worksheet undergoing a structural edit (insert/delete row or column — see
@@ -60,7 +69,8 @@ export function useDebouncedAutosave(
 
       const baseline = lastSavedRef.current[worksheetId] ?? {};
       const edits = diffCellValues(baseline, pending);
-      if (edits.length === 0) {
+      const metadataChanged = metadataDirtyRef.current.has(worksheetId);
+      if (edits.length === 0 && !metadataChanged) {
         if (pendingRef.current[worksheetId] === pending) delete pendingRef.current[worksheetId];
         return true;
       }
@@ -68,9 +78,15 @@ export function useDebouncedAutosave(
       savingIdsRef.current.add(worksheetId);
       updateAggregateStatus();
       try {
-        await saveEdits(worksheetId, edits);
+        // Attached on every save this point is reached, not only when metadataChanged is what
+        // triggered it — a plain cell edit's own save "for free" also keeps metadata in sync,
+        // so a missed/not-yet-confirmed metadata command id never causes a permanent loss, only
+        // a delay until the next save for any reason (see METADATA_COMMAND_IDS's own comment).
+        const metadata = getMetadata(worksheetId) ?? undefined;
+        await saveEdits(worksheetId, edits, metadata);
         lastSavedRef.current[worksheetId] = pending;
         if (pendingRef.current[worksheetId] === pending) delete pendingRef.current[worksheetId];
+        metadataDirtyRef.current.delete(worksheetId);
         savingIdsRef.current.delete(worksheetId);
         updateAggregateStatus();
         // Only retry-immediately here, on the *success* path: a newer snapshot queued while
@@ -91,7 +107,7 @@ export function useDebouncedAutosave(
         return false;
       }
     },
-    [saveEdits, updateAggregateStatus]
+    [saveEdits, getMetadata, updateAggregateStatus]
   );
 
   // Saves whatever's pending right now, skipping the rest of the debounce wait — backs both
@@ -121,6 +137,7 @@ export function useDebouncedAutosave(
         if (!sheet.id || !(sheet.id in lastSavedRef.current)) continue;
         if (structuralInFlightRef.current.has(sheet.id)) continue;
         pendingRef.current[sheet.id] = extractCellValues(sheet as IWorksheetData, changed.styles);
+        if (changed.metadataDirty) metadataDirtyRef.current.add(sheet.id);
       }
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {

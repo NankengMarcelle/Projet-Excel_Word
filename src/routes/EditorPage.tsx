@@ -10,7 +10,7 @@ import {
   getWorksheet,
   updateWorksheet,
 } from "../api/worksheets";
-import { backendToUniverWorksheetData, extractCellValues } from "../univer/adapter";
+import { backendToUniverWorksheetData, buildWorkbookResources, extractCellValues } from "../univer/adapter";
 import {
   UniverSheetGrid,
   type ComputedCellValue,
@@ -60,15 +60,20 @@ function EditorWorkbookReady({
   const { lang } = useLang();
   const t = copy[lang];
   const queryClient = useQueryClient();
+  // Declared before useDebouncedAutosave below so its getMetadata callback can close over it —
+  // the ref itself is stable across renders either way, only the *declaration order* matters
+  // here since getMetadata is created once, on this render, and needs gridRef already in scope.
+  const gridRef = useRef<UniverSheetGridHandle>(null);
   const { status, handleChange, flushAll, beginStructuralEdit, resolveStructuralEdit } = useDebouncedAutosave(
     initialWorksheets,
-    (worksheetId, edits) =>
-      updateWorksheet(workbookId, worksheetId, { edits }).then(() => {
+    (worksheetId, edits, metadata) =>
+      updateWorksheet(workbookId, worksheetId, { edits, metadata }).then(() => {
         // A save can be to a parent sheet, which may make one or more child sheets outdated —
         // this invalidates the relationship list AND every per-relationship status query
         // together, since they share this key prefix.
         void queryClient.invalidateQueries({ queryKey: ["child-sheets", workbookId] });
-      })
+      }),
+    (worksheetId) => gridRef.current?.getWorksheetMetadata(worksheetId) ?? null
   );
 
   // Insert/delete row/column used to be reconstructed from a cell-value diff, which corrupted
@@ -117,7 +122,6 @@ function EditorWorkbookReady({
     queryFn: () => listChildSheets(workbookId),
   });
 
-  const gridRef = useRef<UniverSheetGridHandle>(null);
   const [pendingSheetDeletion, setPendingSheetDeletion] = useState<{
     worksheetId: string;
     sheetName: string;
@@ -169,8 +173,9 @@ function EditorWorkbookReady({
       styles: {},
       sheetOrder: initialWorksheets.map((s) => s.id),
       sheets: Object.fromEntries(initialWorksheets.map((s) => [s.id, s])),
+      resources: buildWorkbookResources(worksheetDataList),
     }),
-    [workbookId, initialWorksheets, lang]
+    [workbookId, initialWorksheets, worksheetDataList, lang]
   );
 
   useEffect(() => onStatusChange(status), [status, onStatusChange]);

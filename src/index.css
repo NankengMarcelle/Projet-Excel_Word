@@ -55,6 +55,12 @@
     --danger: #f97066;
     --danger-bg: rgba(249, 112, 102, 0.12);
     --social-bg: rgba(47, 48, 58, 0.5);
+    /* AppShell's sidebar keeps its own navy brand hue (#02006c, the light-mode default) rather
+       than switching to a neutral gray — but at full saturation it visually "pops" against the
+       desaturated --bg/--surface tones around it (reported directly: "looks weird in darkmode").
+       Same hue, muted down to match how saturated the rest of dark mode actually is. */
+    --sidebar-bg: #262a52;
+    --sidebar-hover: #363b73;
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
@@ -74,6 +80,8 @@
   --danger: #f97066;
   --danger-bg: rgba(249, 112, 102, 0.12);
   --social-bg: rgba(47, 48, 58, 0.5);
+  --sidebar-bg: #262a52;
+  --sidebar-hover: #363b73;
   --shadow:
     rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
 }

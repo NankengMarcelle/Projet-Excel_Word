@@ -10,23 +10,23 @@
 .admin-title {
   font-size: 22px;
   font-weight: 700;
-  color: #02006c;
+  color: var(--accent);
   margin: 0 0 20px;
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;
 }
 
 .admin-status {
   font-size: 14px;
-  color: #64748b;
+  color: var(--text);
 }
 
 .admin-status-error {
-  color: #dc2626;
+  color: var(--danger);
 }
 
 .admin-table-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 4px 14px rgba(2, 0, 108, 0.05);
@@ -41,19 +41,19 @@
 .admin-table th {
   text-align: left;
   padding: 12px 20px;
-  background: #f8fafc;
-  color: #64748b;
+  background: var(--code-bg);
+  color: var(--text);
   font-weight: 700;
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid var(--border);
 }
 
 .admin-table td {
   padding: 12px 20px;
-  border-bottom: 1px solid #f1f5f9;
-  color: #0f172a;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-h);
 }
 
 .admin-table tr:last-child td {
@@ -67,14 +67,14 @@
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 999px;
-  background: #f1f5f9;
-  color: #475569;
+  background: var(--code-bg);
+  color: var(--text);
   text-transform: capitalize;
 }
 
 .admin-badge-admin {
-  background: rgba(2, 0, 108, 0.08);
-  color: #02006c;
+  background: var(--accent-bg);
+  color: var(--accent);
 }
 
 .admin-badge-active {
@@ -83,6 +83,6 @@
 }
 
 .admin-badge-inactive {
-  background: rgba(220, 38, 38, 0.08);
-  color: #dc2626;
+  background: var(--danger-bg);
+  color: var(--danger);
 }

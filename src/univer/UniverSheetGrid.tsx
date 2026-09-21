@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { createUniver, LocaleType, defaultTheme, type IWorkbookData } from "@univerjs/presets";
+import { createUniver, LocaleType, defaultTheme, type IWorkbookData, type IWorksheetData } from "@univerjs/presets";
 
 type UniverAPI = ReturnType<typeof createUniver>["univerAPI"];
 import { UniverSheetsCorePreset } from "@univerjs/preset-sheets-core";
@@ -89,7 +89,7 @@ interface UniverSheetGridProps {
   // wrapper (confirmed: imperative DI-container architecture, mounted into a plain DOM node),
   // so this component owns the whole lifecycle itself rather than being a thin prop-driven view.
   workbookData: IWorkbookData;
-  onChange?: (data: IWorkbookData) => void;
+  onChange?: (data: ChangedWorksheetsSnapshot) => void;
   onActiveSheetChange?: (sheetId: string) => void;
   // Fired when the user inserts/deletes a row or column via Univer's own UI. worksheetId
   // matches the backend worksheet id (Univer's subUnitId — see adapter.ts, sheet ids are
@@ -122,6 +122,17 @@ export interface ComputedCellValue {
   row: number;
   column: number;
   value: unknown;
+}
+
+// SheetValueChanged's own effectedRanges (see the handler below) tells us exactly which
+// worksheet(s) a given firing actually touched — this carries only those, as opposed to a full
+// IWorkbookData snapshot (every sheet in the workbook). `styles` is still workbook-level (styles
+// are interned/shared across sheets, not duplicated per sheet), but cheap to fetch on its own —
+// see the handler's own comment for why this is a Workbook.getStyles().toJSON() call, not part
+// of a full workbook.save().
+export interface ChangedWorksheetsSnapshot {
+  sheets: Record<string, IWorksheetData>;
+  styles: IWorkbookData["styles"];
 }
 
 export interface UniverSheetGridHandle {
@@ -281,18 +292,82 @@ export const UniverSheetGrid = forwardRef<UniverSheetGridHandle, UniverSheetGrid
     univerAPIRef.current = univerAPI;
     univerAPI.createUniverSheet(currentSnapshotRef.current);
 
-    // SheetValueChanged fires per edit action (typing, paste, fill, sort, ...) — rather than try
-    // to interpret `effectedRanges` ourselves, just pull the whole current workbook snapshot via
-    // save() each time (FWorkbook's own getSnapshot() is deprecated in favor of this — same
-    // return shape, just the current name), same shape our own diffing (extractCellValues/
-    // diffCellValues in univer/adapter.ts) already expects, matching the pattern the old
-    // Fortune-sheet onChange prop used (a full-sheet snapshot per change), just event-driven
-    // instead of prop-driven.
-    const valueChangedDisposable = univerAPI.addEvent(univerAPI.Event.SheetValueChanged, () => {
+    // SheetValueChanged fires once per underlying value-changing mutation Univer's command
+    // service executes (sheet.mutation.set-range-values, move-range, ... — confirmed against
+    // the installed @univerjs/sheets bundle's own listener registration, not documented in the
+    // public docs) — NOT once per user action. A plain edit with no formula dependents fires it
+    // exactly once (confirmed live); but a cell with downstream formula dependents makes
+    // Univer's own recalculation engine dispatch its own additional set-range-values mutations
+    // as it recalculates, each re-firing this event — and the very first load of a workbook
+    // fires it once per sheet as Univer computes every formula for the first time (confirmed
+    // live against the real "Programmation 2026-2028" workbook: ~20 firings, one per sheet, in
+    // a burst right after load, well before any user touches anything).
+    //
+    // This handler used to respond to every one of those firings by calling `workbook.save()`
+    // (a full *workbook* snapshot — every sheet, every cell) and handleChange
+    // (useDebouncedAutosave.ts) then re-extracted every sheet's cells looking for the one that
+    // actually changed. Measured live: ~340-470ms for save() plus ~100ms for the extraction
+    // loop, PER firing — so a burst of firings (an edit with several dependents, or simply
+    // opening the workbook) could cost seconds of synchronous main-thread work. The event's own
+    // `effectedRanges` (confirmed via f-event.d.ts's ISheetValueChangedEventParams, a real
+    // typed/public part of the Facade API, just not prose-documented) already tells us exactly
+    // which sheet(s) this specific firing touched, via FRange.getSheetId() — so only those
+    // sheets' own per-sheet snapshot (Worksheet.getSnapshot(), reached via
+    // FWorksheet.getSheet()) is read, never a full workbook.save().
+    //
+    // Worksheet.getSnapshot() is not perfectly reliable for this, though — confirmed live
+    // against the real "Programmation 2026-2028" workbook: amid a burst of many near-
+    // simultaneous firings across sheets, a just-written cell was occasionally missing from
+    // this specific sheet's own getSnapshot() at the exact moment this handler ran, even though
+    // the mutation that fired the event had already applied it (onCommandExecuted only fires
+    // post-execution) and the cell was already visibly correct on screen. A silently incomplete
+    // snapshot here would make handleChange's diff think that cell never changed at all —
+    // silent data loss on save, worse than the slowness this whole rework exists to fix. Fixed
+    // by verifying: each effected range's own live values (FRange.getValues(), a read already
+    // proven reliable elsewhere in this file, e.g. getComputedValues) must actually appear in
+    // the per-sheet snapshot just read; if any don't, this firing falls back to the original,
+    // always-correct workbook.save() just for itself, trading away this one firing's speed-up
+    // to guarantee correctness never regresses versus the pre-fix behavior. Every other firing
+    // still takes the fast path — this fallback was not observed to trigger for a normal,
+    // isolated edit, only amid a large recalculation burst.
+    const valueChangedDisposable = univerAPI.addEvent(univerAPI.Event.SheetValueChanged, ({ effectedRanges }) => {
       const workbook = univerAPI.getActiveWorkbook();
-      if (workbook && onChangeRef.current) {
-        onChangeRef.current(workbook.save());
+      if (!workbook || !onChangeRef.current) return;
+
+      const affectedSheetIds = new Set(effectedRanges.map((range) => range.getSheetId()));
+      const sheets: Record<string, IWorksheetData> = {};
+      for (const sheetId of affectedSheetIds) {
+        const snapshot = workbook.getSheetBySheetId(sheetId)?.getSheet().getSnapshot();
+        if (snapshot) sheets[sheetId] = snapshot;
       }
+      if (Object.keys(sheets).length === 0) return;
+
+      const isSnapshotMissingALiveValue = effectedRanges.some((range) => {
+        const sheet = sheets[range.getSheetId()];
+        if (!sheet) return false;
+        const startRow = range.getRow();
+        const startColumn = range.getColumn();
+        return range.getValues().some((row, rowOffset) =>
+          row.some((liveValue, colOffset) => {
+            if (liveValue === null || liveValue === undefined) return false;
+            return sheet.cellData?.[startRow + rowOffset]?.[startColumn + colOffset]?.v === undefined;
+          })
+        );
+      });
+
+      if (isSnapshotMissingALiveValue) {
+        const fullSnapshot = workbook.save();
+        const fallbackSheets: Record<string, IWorksheetData> = {};
+        for (const sheetId of affectedSheetIds) {
+          const sheet = fullSnapshot.sheets[sheetId];
+          if (sheet) fallbackSheets[sheetId] = sheet as IWorksheetData;
+        }
+        onChangeRef.current({ sheets: fallbackSheets, styles: fullSnapshot.styles });
+        return;
+      }
+
+      const styles = workbook.getWorkbook().getStyles().toJSON();
+      onChangeRef.current({ sheets, styles });
     });
 
     const activeSheetDisposable = univerAPI.addEvent(univerAPI.Event.ActiveSheetChanged, (params) => {

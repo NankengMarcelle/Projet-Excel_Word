@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { IWorkbookData, IWorksheetData } from "@univerjs/presets";
+import type { IWorksheetData } from "@univerjs/presets";
 import { diffCellValues, extractCellValues, type CellSnapshotMap } from "../univer/adapter";
+import type { ChangedWorksheetsSnapshot } from "../univer/UniverSheetGrid";
 import type { CellEdit } from "../types/worksheet";
 
 export type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 /**
- * Debounces Univer's SheetValueChanged event (each firing hands us the whole workbook's current
- * snapshot via save() — see UniverSheetGrid.tsx — the same "full snapshot per change" shape
- * Fortune-sheet's onChange prop used, just event-driven instead of prop-driven) into one
- * batched PUT per worksheet that actually changed since its own last successful save.
+ * Debounces Univer's SheetValueChanged event into one batched PUT per worksheet that actually
+ * changed since its own last successful save. Each firing hands us a ChangedWorksheetsSnapshot
+ * — only the sheet(s) that specific firing actually touched (see UniverSheetGrid.tsx's own
+ * handler comment for why this is scoped rather than a full workbook snapshot), so this loop
+ * below is normally just one sheet, not every sheet in the workbook.
  *
  * Sheets with no matching backend worksheet id are intentionally never diffed/saved — that's a
  * separate, local-only feature, not something this app persists.
@@ -46,17 +48,21 @@ export function useDebouncedAutosave(
     setStatus(savingIdsRef.current.size > 0 ? "saving" : "saved");
   }, []);
 
+  // Returns whether this sheet ended up in a clean state (nothing pending, or successfully
+  // saved) — false only on an actual save failure. flushAll() uses this to know whether it's
+  // safe to declare "saved" once every sheet it kicked off has settled, without stomping on an
+  // error status a failing sheet already set.
   const flushSheet = useCallback(
-    async (worksheetId: string) => {
-      if (savingIdsRef.current.has(worksheetId)) return;
+    async (worksheetId: string): Promise<boolean> => {
+      if (savingIdsRef.current.has(worksheetId)) return true;
       const pending = pendingRef.current[worksheetId];
-      if (!pending) return;
+      if (!pending) return true;
 
       const baseline = lastSavedRef.current[worksheetId] ?? {};
       const edits = diffCellValues(baseline, pending);
       if (edits.length === 0) {
         if (pendingRef.current[worksheetId] === pending) delete pendingRef.current[worksheetId];
-        return;
+        return true;
       }
 
       savingIdsRef.current.add(worksheetId);
@@ -76,11 +82,13 @@ export function useDebouncedAutosave(
         // the backend this way hammered it with 357+ identical failing requests in under a
         // minute. The next genuine edit (or a manual Save) will naturally try again.
         if (pendingRef.current[worksheetId]) {
-          void flushSheet(worksheetId);
+          return flushSheet(worksheetId);
         }
+        return true;
       } catch {
         savingIdsRef.current.delete(worksheetId);
         setStatus("error");
+        return false;
       }
     },
     [saveEdits, updateAggregateStatus]
@@ -88,20 +96,31 @@ export function useDebouncedAutosave(
 
   // Saves whatever's pending right now, skipping the rest of the debounce wait — backs both
   // the manual Save button/Ctrl+S and the unmount/unload safety nets below.
-  const flushAll = useCallback(() => {
+  //
+  // Explicitly re-asserts "saved" once everything settles, even when nothing was pending at
+  // all — confirmed live as a real UX bug otherwise: flushSheet() returns immediately for a
+  // sheet with nothing pending (the common case — the button's whole purpose is "make sure
+  // right now," typically clicked well after the 1s debounce already saved everything on its
+  // own) without ever touching the status the indicator next to the button reads, so clicking
+  // Save produced no visible feedback at all. Skipped when any sheet actually failed, so this
+  // never overwrites the error status that sheet's own flushSheet() call already set.
+  const flushAll = useCallback(async () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
       timeoutRef.current = null;
     }
-    return Promise.all(Object.keys(pendingRef.current).map((id) => flushSheet(id)));
-  }, [flushSheet]);
+    const results = await Promise.all(Object.keys(pendingRef.current).map((id) => flushSheet(id)));
+    if (results.every(Boolean)) {
+      updateAggregateStatus();
+    }
+  }, [flushSheet, updateAggregateStatus]);
 
   const handleChange = useCallback(
-    (workbookData: IWorkbookData) => {
-      for (const sheet of Object.values(workbookData.sheets)) {
+    (changed: ChangedWorksheetsSnapshot) => {
+      for (const sheet of Object.values(changed.sheets)) {
         if (!sheet.id || !(sheet.id in lastSavedRef.current)) continue;
         if (structuralInFlightRef.current.has(sheet.id)) continue;
-        pendingRef.current[sheet.id] = extractCellValues(sheet as IWorksheetData, workbookData.styles);
+        pendingRef.current[sheet.id] = extractCellValues(sheet as IWorksheetData, changed.styles);
       }
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       timeoutRef.current = setTimeout(() => {

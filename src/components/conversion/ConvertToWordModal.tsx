@@ -3,7 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { convertWorksheet } from "../../api/conversions";
 import { ApiError } from "../../api/client";
 import { useFileDownload } from "../../hooks/useFileDownload";
-import { WordDocIcon } from "../icons/EditorIcons";
+import { SpinnerIcon, WordDocIcon } from "../icons/EditorIcons";
 import type { WorksheetRead } from "../../types/worksheet";
 
 type Phase = "idle" | "ready" | "downloaded";
@@ -66,7 +66,8 @@ export function ConvertToWordModal({ worksheets, onClose }: { worksheets: Worksh
         {phase === "idle" && (
           <div className="modal-actions">
             <button type="button" className="editor-action-btn" onClick={() => mutation.mutate()} disabled={mutation.isPending}>
-              <WordDocIcon /> {mutation.isPending ? "Converting..." : "Convert"}
+              {mutation.isPending ? <SpinnerIcon className="btn-spinner" /> : <WordDocIcon />}{" "}
+              {mutation.isPending ? "Converting..." : "Convert"}
             </button>
             <button type="button" className="editor-action-btn ghost" onClick={onClose}>
               Cancel
@@ -77,6 +78,7 @@ export function ConvertToWordModal({ worksheets, onClose }: { worksheets: Worksh
         {phase === "ready" && (
           <div className="modal-actions">
             <button type="button" className="editor-action-btn" onClick={handleDownload} disabled={isDownloading}>
+              {isDownloading && <SpinnerIcon className="btn-spinner" />}
               {isDownloading ? "Downloading..." : `Download ${filename}`}
             </button>
             <button type="button" className="editor-action-btn ghost" onClick={onClose}>

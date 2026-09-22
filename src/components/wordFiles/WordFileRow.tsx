@@ -4,6 +4,7 @@ import type { WordFileRead } from "../../types/conversion";
 import { useFileDownload } from "../../hooks/useFileDownload";
 import { deleteConversion } from "../../api/conversions";
 import { DownloadIcon, TrashIcon } from "../icons/WorkspaceIcons";
+import { SpinnerIcon } from "../icons/EditorIcons";
 import { copy } from "../../i18n/copy";
 import { useLang } from "../../i18n/useLang";
 import type { Lang } from "../../i18n/LangContext";
@@ -76,7 +77,8 @@ export function WordFileRow({ file }: { file: WordFileRead }) {
             void handleDownload();
           }}
         >
-          <DownloadIcon /> {isDownloading ? t.downloading : t.downloadAction}
+          {isDownloading ? <SpinnerIcon className="btn-spinner" /> : <DownloadIcon />}{" "}
+          {isDownloading ? t.downloading : t.downloadAction}
         </button>
         <button
           type="button"
@@ -89,7 +91,7 @@ export function WordFileRow({ file }: { file: WordFileRead }) {
             deleteMutation.mutate();
           }}
         >
-          <TrashIcon />
+          {deleteMutation.isPending ? <SpinnerIcon className="btn-spinner" /> : <TrashIcon />}
         </button>
       </div>
 

@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { listUsers } from "../api/admin";
+import { LoadingState } from "../components/common/LoadingState";
 import { copy } from "../i18n/copy";
 import { useLang } from "../i18n/useLang";
 import "./AdminPage.css";
@@ -17,7 +18,7 @@ export function AdminPage() {
     <main className="admin-main">
       <h1 className="admin-title">{t.adminUsersTitle}</h1>
 
-      {isLoading && <p className="admin-status">{t.loadingUsers}</p>}
+      {isLoading && <LoadingState message={t.loadingUsers} />}
       {error && (
         <p role="alert" className="admin-status admin-status-error">
           {t.failedToLoadUsers}

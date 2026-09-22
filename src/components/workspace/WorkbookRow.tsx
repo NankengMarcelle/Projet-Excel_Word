@@ -15,6 +15,7 @@ import {
   SpreadsheetFileIcon,
   TrashIcon,
 } from "../icons/WorkspaceIcons";
+import { SpinnerIcon } from "../icons/EditorIcons";
 
 function formatBytes(bytes: number | null): string {
   if (bytes === null) return "—";
@@ -172,7 +173,8 @@ export function WorkbookRow({ workbook }: { workbook: WorkbookRead }) {
                 void download(`/workbooks/${workbook.id}/download`, workbook.filename);
               }}
             >
-              <DownloadIcon /> {isDownloading ? t.downloading : t.downloadAction}
+              {isDownloading ? <SpinnerIcon className="btn-spinner" /> : <DownloadIcon />}{" "}
+              {isDownloading ? t.downloading : t.downloadAction}
             </button>
             <button
               type="button"

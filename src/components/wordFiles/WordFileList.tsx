@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { listWordFiles } from "../../api/conversions";
 import { WordFileRow } from "./WordFileRow";
+import { LoadingState } from "../common/LoadingState";
 import { copy } from "../../i18n/copy";
 import { useLang } from "../../i18n/useLang";
 
@@ -17,7 +18,7 @@ export function WordFileList() {
     queryFn: listWordFiles,
   });
 
-  if (isLoading) return <p className="word-files-status">{t.loadingWordFiles}</p>;
+  if (isLoading) return <LoadingState message={t.loadingWordFiles} />;
   if (error) return <p role="alert" className="word-files-status">{t.failedToLoadWordFiles}</p>;
 
   if (!files || files.length === 0) {

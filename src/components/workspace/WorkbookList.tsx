@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listWorkbooks } from "../../api/workbooks";
 import { WorkbookRow } from "./WorkbookRow";
+import { LoadingState } from "../common/LoadingState";
 import type { WorkbookRead } from "../../types/workbook";
 import { copy } from "../../i18n/copy";
 import { useLang } from "../../i18n/useLang";
@@ -60,7 +61,7 @@ export function WorkbookList({ searchQuery }: { searchQuery: string }) {
 
   const groups = useMemo(() => groupByRecency(filtered), [filtered]);
 
-  if (isLoading) return <p className="workspace-status">{t.loadingWorkbooks}</p>;
+  if (isLoading) return <LoadingState message={t.loadingWorkbooks} />;
   if (error) return <p role="alert" className="workspace-status">{t.failedToLoadWorkbooks}</p>;
 
   if (!workbooks || workbooks.length === 0) {

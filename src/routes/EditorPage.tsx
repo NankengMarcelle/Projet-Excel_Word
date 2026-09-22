@@ -19,6 +19,7 @@ import {
 } from "../univer/UniverSheetGrid";
 import { useDebouncedAutosave, type SaveStatus } from "../hooks/useDebouncedAutosave";
 import { EditorTopBar } from "../components/editor/EditorTopBar";
+import { LoadingState } from "../components/common/LoadingState";
 import { ChildSheetModal } from "../components/childSheet/ChildSheetModal";
 import { DeleteSheetWarningModal } from "../components/editor/DeleteSheetWarningModal";
 import { ChevronIcon } from "../components/icons/EditorIcons";
@@ -238,6 +239,12 @@ function EditorWorkbook({
   const { lang } = useLang();
   const t = copy[lang];
   const worksheetIds = worksheets.map((w) => w.id).join(",");
+  // Bumped from inside the fetch loop below so the loading state can show real "sheet X of Y"
+  // progress instead of a static message for however long the sequential fetch takes. Reset to
+  // 0 at the start of every queryFn run (not just on mount) so a refetch triggered by
+  // worksheetIds changing — the sheet set changed, same component instance — doesn't start from
+  // a stale prior count.
+  const [loadedCount, setLoadedCount] = useState(0);
 
   // Fetched one at a time, not in parallel (this used to be a useQueries firing every
   // worksheet's GET at once). The backend's per-worksheet read is CPU-bound — openpyxl cell
@@ -249,9 +256,11 @@ function EditorWorkbook({
   const { data: worksheetDataList, isLoading, error } = useQuery({
     queryKey: ["worksheets", workbookId, worksheetIds],
     queryFn: async () => {
+      setLoadedCount(0);
       const results: WorksheetData[] = [];
       for (const worksheet of worksheets) {
         results.push(await getWorksheet(workbookId, worksheet.id));
+        setLoadedCount((count) => count + 1);
       }
       return results;
     },
@@ -275,7 +284,11 @@ function EditorWorkbook({
     return worksheetDataList.map((data) => backendToUniverWorksheetData(data));
   }, [worksheetDataList]);
 
-  if (isLoading) return <p className="editor-status">{t.loadingWorksheetsMsg}</p>;
+  if (isLoading) {
+    return (
+      <LoadingState message={t.loadingWorksheetsMsg} progress={{ current: loadedCount, total: worksheets.length }} />
+    );
+  }
   if (error || !worksheetDataList || !initialWorksheets) {
     return <p role="alert" className="editor-status">{t.failedToLoadWorksheetsMsg}</p>;
   }
@@ -378,7 +391,7 @@ export function EditorPage() {
   // the modal itself lets the user change which parent sheet to derive from.
   const firstOriginalWorksheetId = sortedWorksheets.find((w) => w.sheet_type === "original")?.id ?? null;
 
-  if (isWorkbookLoading) return <p className="editor-status">{t.loadingWorkbookMsg}</p>;
+  if (isWorkbookLoading) return <LoadingState message={t.loadingWorkbookMsg} />;
   if (workbookError || !workbook) return <p role="alert" className="editor-status">{t.failedToLoadWorkbookMsg}</p>;
 
   return (

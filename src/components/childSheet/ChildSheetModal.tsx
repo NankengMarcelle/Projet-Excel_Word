@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createChildSheet } from "../../api/childSheets";
 import { ApiError } from "../../api/client";
+import { SpinnerIcon } from "../icons/EditorIcons";
 import type { ComputedCellValue } from "../../univer/UniverSheetGrid";
 import type { WorksheetRead } from "../../types/worksheet";
 import { copy } from "../../i18n/copy";
@@ -136,6 +137,7 @@ export function ChildSheetModal({
 
         <div className="modal-actions">
           <button type="button" className="editor-action-btn" onClick={handleSubmit} disabled={mutation.isPending}>
+            {mutation.isPending && <SpinnerIcon className="btn-spinner" />}
             {mutation.isPending ? "Creating..." : "Create"}
           </button>
           <button type="button" className="editor-action-btn ghost" onClick={onClose}>

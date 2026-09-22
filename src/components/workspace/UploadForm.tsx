@@ -3,6 +3,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { importWorkbook } from "../../api/workbooks";
 import { ApiError } from "../../api/client";
 import { UploadCloudIcon } from "../icons/WorkspaceIcons";
+import { SpinnerIcon } from "../icons/EditorIcons";
 import { copy } from "../../i18n/copy";
 import { useLang } from "../../i18n/useLang";
 
@@ -57,7 +58,7 @@ export function UploadForm() {
         onDrop={handleDrop}
         disabled={mutation.isPending}
       >
-        <UploadCloudIcon />
+        {mutation.isPending ? <SpinnerIcon className="btn-spinner" /> : <UploadCloudIcon />}
         <span className="upload-card-label">
           {mutation.isPending ? t.uploading : t.uploadWorkbookLabel}
         </span>
